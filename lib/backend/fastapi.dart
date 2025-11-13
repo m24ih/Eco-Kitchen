@@ -1,0 +1,5 @@
+/*
+burada fonksiyonlar gibi her turlu backend dosyalarini bulunduracagiz.
+gerekli durumda backend klasorunun altina da fonksiyonlar gibi alt klasor olusturup
+daha duzenli bir gorunume kavusturabiliriz.
+ */

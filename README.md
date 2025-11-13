@@ -2,6 +2,30 @@
 
 Sustainable AI Recipe Application
 
+## Git komutlari
+Github reposu oldugundan dolayi belki authentication gerekebilir
+bu durumda github desktop veya cli uygulamasini kullanarak once github hesabinizla giris yapmaniz
+gerekiyor.
+
+Oncelikle projeyi bilgisayara indirmek icin
+
+```
+git clone https://github.com/m24ih/Eco-Kitchen.git
+```
+
+Projeyi acip yeni eklemeler yapmadan once her zaman git pull ile projenin guncel halini cekin
+``` 
+git pull
+```
+
+Yeni eklemeler yaptiktan sonra alttaki komutlari kullan
+```
+git add .
+git commit -m "Commit mesajiniz"
+git push
+```
+
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.

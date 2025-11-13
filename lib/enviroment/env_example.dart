@@ -1,0 +1,8 @@
+/*
+burada api gibi gizli kalmasi gereken seyler olacak.
+
+gerekli duzenlemeleri yaptiktan sonra bu dosyanin ismini env.dart olarak degistirin
+
+ayrica bunu .gitignore dosyasinin icine ekledim ve bu sayede github a yuklenmeyecek.
+
+*/
