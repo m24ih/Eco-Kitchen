@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  # 1. PostgreSQL Veritabanı
+  db:
+    image: postgres:15-alpine
+    container_name: eco_kitchen_db
+    restart: always
+    environment:
+      - POSTGRES_USER=melih
+      - POSTGRES_PASSWORD=gizlisifre
+      - POSTGRES_DB=sustain_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # 2. pgAdmin (Veritabanını görmek için arayüz)
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: eco_kitchen_pgadmin
+    restart: always
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@admin.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
