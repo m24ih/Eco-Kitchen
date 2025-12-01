@@ -1,4 +1,0 @@
-/*
-Modulerligi korumak icin dosya yapisini bu sekilde olusturacagiz
-
- */
