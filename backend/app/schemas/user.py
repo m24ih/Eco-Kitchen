@@ -17,3 +17,9 @@ class UserOut(UserBase):
 
     # ORM nesnesini (SQLAlchemy modelini) Pydantic modeline çevirmek için gerekli ayar
     model_config = ConfigDict(from_attributes=True)
+
+
+# Login için sadece email ve şifre yeterli
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
