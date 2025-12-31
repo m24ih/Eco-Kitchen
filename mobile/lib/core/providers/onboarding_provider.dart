@@ -35,17 +35,34 @@ class OnboardingState {
 }
 
 // 2. Yönetici (Notifier): Veriyi değiştirme yetkisi olan sınıf
-class OnboardingNotifier extends StateNotifier<OnboardingState> {
-  OnboardingNotifier() : super(OnboardingState());
+class OnboardingNotifier extends Notifier<OnboardingState> {
+  @override
+  OnboardingState build() {
+    return OnboardingState();
+  }
 
-  void setBirthDate(DateTime date) => state = state.copyWith(birthDate: date);
-  void setHeight(int height) => state = state.copyWith(height: height);
-  void setWeight(int weight) => state = state.copyWith(weight: weight);
-  void setActivityLevel(double level) => state = state.copyWith(activityLevel: level);
-  void setGoal(String goal) => state = state.copyWith(goal: goal);
+  void setBirthDate(DateTime date) {
+    state = state.copyWith(birthDate: date);
+  }
+
+  void setHeight(int height) {
+    state = state.copyWith(height: height);
+  }
+
+  void setWeight(int weight) {
+    state = state.copyWith(weight: weight);
+  }
+
+  void setActivityLevel(double level) {
+    state = state.copyWith(activityLevel: level);
+  }
+
+  void setGoal(String goal) {
+    state = state.copyWith(goal: goal);
+  }
 }
 
 // 3. Provider: Uygulamanın erişim noktası
-final onboardingProvider = StateNotifierProvider<OnboardingNotifier, OnboardingState>((ref) {
+final onboardingProvider = NotifierProvider<OnboardingNotifier, OnboardingState>(() {
   return OnboardingNotifier();
 });
