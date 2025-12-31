@@ -39,7 +39,7 @@ class MyApp extends StatelessWidget {
       ),
 
       // Uygulamanın ilk açılacak sayfasını belirliyoruz.
-      home: HomeScreen(),
+      home: OnboardingScreen() ,
     );
   }
 }
