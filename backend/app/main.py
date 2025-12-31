@@ -2,8 +2,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.core.database import engine, Base
 from app.models.user import User
-# Yeni eklenen import:
 from app.api.v1 import auth 
+from app.api.v1 import ingredients
+from app.models.ingredient import Ingredient
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -18,6 +20,7 @@ app = FastAPI(title="Eco Kitchen API", lifespan=lifespan)
 
 # Router'ı dahil etme işlemi:
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Kimlik Doğrulama"])
+app.include_router(ingredients.router, prefix="/api/v1/ingredients", tags=["Malzemeler"])
 
 @app.get("/")
 async def root():
