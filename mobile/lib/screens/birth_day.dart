@@ -1,17 +1,19 @@
-import 'package:eco_kitchen/screens/tall.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // 1. Riverpod ekle
+import 'package:eco_kitchen/core/providers/onboarding_provider.dart'; // 2. Provider'ı ekle
+import 'package:eco_kitchen/screens/tall.dart';
 
 // Ana renk kodlarımız
 const Color primaryGreen = Color(0xFF9DB67B);
 const Color lightGrey = Color(0xFFEFEFEF);
 const Color darkGreen = Color(0xFF38463B);
 
-class BirthDayScreen extends StatefulWidget {
+class BirthDayScreen extends ConsumerStatefulWidget {
   @override
   _BirthDayScreenState createState() => _BirthDayScreenState();
 }
 
-class _BirthDayScreenState extends State<BirthDayScreen> {
+class _BirthDayScreenState extends ConsumerState<BirthDayScreen> {
   // Varsayılan olarak bugünün tarihini alabiliriz.
   DateTime? _selectedDate;
 
@@ -166,6 +168,9 @@ class _BirthDayScreenState extends State<BirthDayScreen> {
             // 5. Next Butonu
             ElevatedButton(
               onPressed: age != null ? () {
+                if (_selectedDate != null) {
+                 ref.read(onboardingProvider.notifier).setBirthDate(_selectedDate!);
+                   }
                 Navigator.push(
                   context,
                   MaterialPageRoute(

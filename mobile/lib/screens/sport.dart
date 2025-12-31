@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'goal.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:eco_kitchen/core/providers/onboarding_provider.dart';
+
 // Ana renk kodlarımız
 const Color primaryGreen = Color(0xFF9DB67B);
 const Color darkGreen = Color(0xFF38463B);
 const Color needleColor = Colors.black; // İbre rengi
 
-class SportScreen extends StatefulWidget {
+class SportScreen extends ConsumerStatefulWidget {
   @override
   _SportScreenState createState() => _SportScreenState();
 }
 
-class _SportScreenState extends State<SportScreen> {
+class _SportScreenState extends ConsumerState<SportScreen> {
   // Aktivite seviyesi (0.0: En Soldan, 1.0: En Sağa)
   double _activityLevel = 0.8;
 
@@ -82,8 +85,9 @@ class _SportScreenState extends State<SportScreen> {
         ),
         actions: <Widget>[
           TextButton(
-            onPressed: () { /* Skip */ },
-            child: const Text('Skip', style: TextStyle(color: Colors.grey, fontSize: 16)),
+            onPressed: () {/* Skip */},
+            child: const Text('Skip',
+                style: TextStyle(color: Colors.grey, fontSize: 16)),
           ),
           const SizedBox(width: 16.0),
         ],
@@ -98,11 +102,19 @@ class _SportScreenState extends State<SportScreen> {
             // 1. Başlık Metni
             const Text(
               'What is your ',
-              style: TextStyle(fontFamily: 'Montserrat', fontSize: 24, fontWeight: FontWeight.bold, color: darkGreen),
+              style: TextStyle(
+                  fontFamily: 'Montserrat',
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: darkGreen),
             ),
             Text(
               'activity level?',
-              style: TextStyle(fontFamily: 'Montserrat', fontSize: 24, fontWeight: FontWeight.bold, color: primaryGreen),
+              style: TextStyle(
+                  fontFamily: 'Montserrat',
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: primaryGreen),
             ),
 
             const SizedBox(height: 8.0),
@@ -110,7 +122,8 @@ class _SportScreenState extends State<SportScreen> {
             // 2. Açıklama Metni
             const Text(
               'We will use this data to give you a better diet type for you',
-              style: TextStyle(fontFamily: 'Montserrat', fontSize: 14, color: Colors.grey),
+              style: TextStyle(
+                  fontFamily: 'Montserrat', fontSize: 14, color: Colors.grey),
             ),
 
             const SizedBox(height: 48.0),
@@ -138,8 +151,10 @@ class _SportScreenState extends State<SportScreen> {
                     child: SliderTheme(
                       data: SliderTheme.of(context).copyWith(
                         trackHeight: 1.0,
-                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 0.0),
-                        overlayShape: const RoundSliderOverlayShape(overlayRadius: 0.0),
+                        thumbShape: const RoundSliderThumbShape(
+                            enabledThumbRadius: 0.0),
+                        overlayShape:
+                            const RoundSliderOverlayShape(overlayRadius: 0.0),
                         activeTrackColor: Colors.transparent,
                         inactiveTrackColor: Colors.transparent,
                       ),
@@ -164,6 +179,9 @@ class _SportScreenState extends State<SportScreen> {
             // Next Butonu
             ElevatedButton(
               onPressed: () {
+                ref
+                    .read(onboardingProvider.notifier)
+                    .setActivityLevel(_activityLevel);
                 Navigator.push(
                   context,
                   MaterialPageRoute(

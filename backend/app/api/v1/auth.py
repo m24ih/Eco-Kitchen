@@ -13,7 +13,28 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 router = APIRouter()
 
-# ... (Mevcut register fonksiyonu burada kalacak) ...
+@router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
+async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
+    # ... (Email kontrolü aynı kalacak) ...
+    
+    hashed_password = get_password_hash(user.password)
+    
+    # Yeni alanları da ekleyerek oluştur
+    new_user = User(
+        email=user.email,
+        password_hash=hashed_password,
+        height=user.height,
+        weight=user.weight,
+        activity_level=user.activity_level,
+        goal=user.goal,
+        birth_date=user.birth_date
+    )
+    
+    db.add(new_user)
+    await db.commit()
+    await db.refresh(new_user)
+    return new_user
+
 
 @router.post("/login", response_model=Token)
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):

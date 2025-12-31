@@ -1,6 +1,7 @@
-
-import 'package:eco_kitchen/screens/sport.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:eco_kitchen/core/providers/onboarding_provider.dart';
+import 'package:eco_kitchen/screens/sport.dart';
 
 // Ana renk kodlarımız
 const Color primaryGreen = Color(0xFF9DB67B);
@@ -8,12 +9,12 @@ const Color lightGrey = Color(0xFFEFEFEF);
 const Color darkGreen = Color(0xFF38463B);
 const Color indicatorYellow = Color(0xFFF7C555); // Sarı/Turuncu ok rengi
 
-class WeightScreen extends StatefulWidget {
+class WeightScreen extends ConsumerStatefulWidget {
   @override
   _WeightScreenState createState() => _WeightScreenState();
 }
 
-class _WeightScreenState extends State<WeightScreen> {
+class _WeightScreenState extends ConsumerState<WeightScreen> {
   late PageController _pageController;
   int _currentPage = 75; // Seçili cm değeri
   final int _minHeight = 0;
@@ -226,6 +227,7 @@ class _WeightScreenState extends State<WeightScreen> {
             // Next Butonu
             ElevatedButton(
               onPressed: () {
+                ref.read(onboardingProvider.notifier).setWeight(_currentPage);
                 Navigator.push(
                   context,
                   MaterialPageRoute(

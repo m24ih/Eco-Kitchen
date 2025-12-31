@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:eco_kitchen/core/providers/onboarding_provider.dart';
+import 'package:eco_kitchen/screens/register_screen.dart';
 
 // Ana renk kodlarımız
 const Color primaryGreen = Color(0xFF9DB67B);
@@ -7,12 +10,12 @@ const Color unselectedGrey = Color(0xFFEFEFEF);
 
 enum GoalType { loseWeight, gainWeight, stayHealthy }
 
-class GoalScreen extends StatefulWidget {
+class GoalScreen extends ConsumerStatefulWidget {
   @override
   _GoalScreenState createState() => _GoalScreenState();
 }
 
-class _GoalScreenState extends State<GoalScreen> {
+class _GoalScreenState extends ConsumerState<GoalScreen> {
   // Seçili olan hedefi tutar
   GoalType? _selectedGoal;
 
@@ -37,10 +40,14 @@ class _GoalScreenState extends State<GoalScreen> {
         margin: const EdgeInsets.only(bottom: 16.0),
         padding: const EdgeInsets.all(20.0),
         decoration: BoxDecoration(
-          color: isSelected ? primaryGreen.withOpacity(0.1) : unselectedGrey, // Seçili ise açık yeşil, değilse gri
+          color: isSelected
+              ? primaryGreen.withOpacity(0.1)
+              : unselectedGrey, // Seçili ise açık yeşil, değilse gri
           borderRadius: BorderRadius.circular(15.0),
           border: Border.all(
-            color: isSelected ? primaryGreen : Colors.transparent, // Seçili ise yeşil çerçeve
+            color: isSelected
+                ? primaryGreen
+                : Colors.transparent, // Seçili ise yeşil çerçeve
             width: 2.0,
           ),
         ),
@@ -87,8 +94,9 @@ class _GoalScreenState extends State<GoalScreen> {
         ),
         actions: <Widget>[
           TextButton(
-            onPressed: () { /* Skip */ },
-            child: const Text('Skip', style: TextStyle(color: Colors.grey, fontSize: 16)),
+            onPressed: () {/* Skip */},
+            child: const Text('Skip',
+                style: TextStyle(color: Colors.grey, fontSize: 16)),
           ),
           const SizedBox(width: 16.0),
         ],
@@ -103,11 +111,19 @@ class _GoalScreenState extends State<GoalScreen> {
             // 1. Başlık Metni
             const Text(
               'What is your ',
-              style: TextStyle(fontFamily: 'Montserrat', fontSize: 24, fontWeight: FontWeight.bold, color: darkGreen),
+              style: TextStyle(
+                  fontFamily: 'Montserrat',
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: darkGreen),
             ),
             Text(
               'goal?',
-              style: TextStyle(fontFamily: 'Montserrat', fontSize: 24, fontWeight: FontWeight.bold, color: primaryGreen),
+              style: TextStyle(
+                  fontFamily: 'Montserrat',
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: primaryGreen),
             ),
 
             const SizedBox(height: 8.0),
@@ -115,7 +131,8 @@ class _GoalScreenState extends State<GoalScreen> {
             // 2. Açıklama Metni
             const Text(
               'We will use this data to give you a better diet type for you',
-              style: TextStyle(fontFamily: 'Montserrat', fontSize: 14, color: Colors.grey),
+              style: TextStyle(
+                  fontFamily: 'Montserrat', fontSize: 14, color: Colors.grey),
             ),
 
             const SizedBox(height: 48.0),
@@ -124,26 +141,39 @@ class _GoalScreenState extends State<GoalScreen> {
             _buildGoalCard(
               title: 'Lose weight',
               goal: GoalType.loseWeight,
-              assetPath: 'assets/images/goal_lose.png', // Lütfen görselleri ekleyin
+              assetPath:
+                  'assets/images/goal_lose.png', // Lütfen görselleri ekleyin
             ),
             _buildGoalCard(
               title: 'Gain weight',
               goal: GoalType.gainWeight,
-              assetPath: 'assets/images/goal_gain.png', // Lütfen görselleri ekleyin
+              assetPath:
+                  'assets/images/goal_gain.png', // Lütfen görselleri ekleyin
             ),
             _buildGoalCard(
               title: 'Stay healthy',
               goal: GoalType.stayHealthy,
-              assetPath: 'assets/images/goal_stay.png', // Lütfen görselleri ekleyin
+              assetPath:
+                  'assets/images/goal_stay.png', // Lütfen görselleri ekleyin
             ),
 
             const Spacer(), // Next butonunu en alta iter
 
             // 4. Next Butonu
             ElevatedButton(
-              onPressed: _selectedGoal != null ? () {
-                // TODO: Ana Sayfaya veya Kayıt Başarılı sayfasına yönlendirme
-              } : null, // Seçim yapılmadıysa butonu devre dışı bırak
+              onPressed: _selectedGoal != null
+                  ? () {
+                      ref
+                          .read(onboardingProvider.notifier)
+                          .setGoal(_selectedGoal.toString());
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => RegisterScreen(),
+                        ),
+                      );
+                    }
+                  : null, // Seçim yapılmadıysa butonu devre dışı bırak
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(double.infinity, 56),
                 backgroundColor: primaryGreen,

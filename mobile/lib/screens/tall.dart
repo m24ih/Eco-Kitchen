@@ -1,5 +1,7 @@
-import 'package:eco_kitchen/screens/weight.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // 1. Riverpod ekle
+import 'package:eco_kitchen/core/providers/onboarding_provider.dart'; // 2. Provider'ı ekle
+import 'package:eco_kitchen/screens/weight.dart';
 
 // Ana renk kodlarımız
 const Color primaryGreen = Color(0xFF9DB67B);
@@ -7,13 +9,12 @@ const Color lightGrey = Color(0xFFEFEFEF);
 const Color darkGreen = Color(0xFF38463B);
 const Color indicatorYellow = Color(0xFFF7C555); // Sarı/Turuncu ok rengi
 
-class TallScreen extends StatefulWidget {
+class TallScreen extends ConsumerStatefulWidget {
   @override
-  _TallScreenState createState() => _TallScreenState();
+_TallScreenState createState() => _TallScreenState();
 }
 
-class _TallScreenState extends State<TallScreen> {
-  late PageController _pageController;
+class _TallScreenState extends ConsumerState<TallScreen> {  late PageController _pageController;
   int _currentPage = 175; // Seçili cm değeri
   final int _minHeight = 0;
   final int _maxHeight = 400;
@@ -226,6 +227,7 @@ class _TallScreenState extends State<TallScreen> {
             // Next Butonu
             ElevatedButton(
               onPressed: () {
+                ref.read(onboardingProvider.notifier).setHeight(_currentPage);
                 Navigator.push(
                   context,
                   MaterialPageRoute(
