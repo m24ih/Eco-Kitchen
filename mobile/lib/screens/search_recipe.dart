@@ -3,6 +3,7 @@ import 'package:animated_bottom_navigation_bar/animated_bottom_navigation_bar.da
 import 'package:eco_kitchen/screens/home.dart';
 import 'package:eco_kitchen/screens/favorites.dart';
 import 'package:eco_kitchen/screens/recipe.dart';
+import 'package:eco_kitchen/screens/ai_chef.dart';
 import 'package:eco_kitchen/data/favorites_data.dart';
 
 const Color primaryGreen = Color(0xFF9DB67B);
@@ -82,7 +83,12 @@ class _SearchRecipeScreenState extends State<SearchRecipeScreen> {
 
   Widget _buildFAB() {
     return FloatingActionButton(
-      onPressed: () {},
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => AiChefScreen()),
+        );
+      },
       backgroundColor: primaryGreen,
       shape: const CircleBorder(),
       elevation: 4.0,

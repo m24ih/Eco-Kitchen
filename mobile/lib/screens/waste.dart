@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:animated_bottom_navigation_bar/animated_bottom_navigation_bar.dart';
 import 'package:eco_kitchen/screens/home.dart';
+import 'package:eco_kitchen/screens/ai_chef.dart';
 
 const Color primaryGreen = Color(0xFF9DB67B);
 const Color secondaryGreen = Color(0xFFE4EEE1);
@@ -75,7 +76,12 @@ class _WasteScreenState extends State<WasteScreen> {
 
   Widget _buildFAB() {
     return FloatingActionButton(
-      onPressed: () {},
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => AiChefScreen()),
+        );
+      },
       backgroundColor: primaryGreen,
       shape: const CircleBorder(),
       elevation: 4.0,

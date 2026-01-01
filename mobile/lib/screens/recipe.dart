@@ -4,6 +4,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:eco_kitchen/screens/home.dart';
 import 'package:eco_kitchen/screens/favorites.dart';
 import 'package:eco_kitchen/screens/recipe_reviews.dart';
+import 'package:eco_kitchen/screens/ai_chef.dart';
 import 'package:eco_kitchen/data/favorites_data.dart';
 
 const Color primaryGreen = Color(0xFF9DB67B);
@@ -101,7 +102,12 @@ class _RecipeScreenState extends State<RecipeScreen> {
 
   Widget _buildFAB() {
     return FloatingActionButton(
-      onPressed: () {},
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => AiChefScreen()),
+        );
+      },
       backgroundColor: primaryGreen,
       shape: const CircleBorder(),
       elevation: 4.0,

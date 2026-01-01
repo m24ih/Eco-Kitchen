@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:eco_kitchen/screens/onboarding2.dart';
+import 'package:eco_kitchen/screens/sign_in.dart';
+
 const Color primaryGreen = Color(0xFF9DB67B);
 
 class OnboardingScreen extends StatelessWidget {
@@ -61,14 +63,14 @@ class OnboardingScreen extends StatelessWidget {
                     // 'Get Started' Butonu
                     ElevatedButton(
                       onPressed: () {
-                      // YÖNLENDİRME KODU BURADA
+                        // YÖNLENDİRME KODU BURADA
                         Navigator.push(
-                        context,
-                         MaterialPageRoute(
-                      // Yeni sayfanızı buraya yönlendiriyoruz
-                    builder: (context) => Onboarding2Screen(),
-                    ),
-                    );
+                          context,
+                          MaterialPageRoute(
+                            // Yeni sayfanızı buraya yönlendiriyoruz
+                            builder: (context) => Onboarding2Screen(),
+                          ),
+                        );
                       },
                       style: ElevatedButton.styleFrom(
                         minimumSize: const Size(double.infinity, 56),
@@ -96,15 +98,20 @@ class OnboardingScreen extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
                       child: Row(
                         children: <Widget>[
-                          const Expanded(child: Divider(color: Colors.grey, thickness: 1.0)),
+                          const Expanded(
+                              child:
+                                  Divider(color: Colors.grey, thickness: 1.0)),
                           const Padding(
                             padding: EdgeInsets.symmetric(horizontal: 8.0),
                             child: Text(
                               'Or',
-                              style: TextStyle(color: Colors.grey, fontSize: 14.0),
+                              style:
+                                  TextStyle(color: Colors.grey, fontSize: 14.0),
                             ),
                           ),
-                          const Expanded(child: Divider(color: Colors.grey, thickness: 1.0)),
+                          const Expanded(
+                              child:
+                                  Divider(color: Colors.grey, thickness: 1.0)),
                         ],
                       ),
                     ),
@@ -114,7 +121,13 @@ class OnboardingScreen extends StatelessWidget {
 
                     // 'Login' Metin Butonu
                     TextButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => SignInScreen()),
+                        );
+                      },
                       child: const Text(
                         'Already have an account? Login',
                         style: TextStyle(

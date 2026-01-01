@@ -6,6 +6,7 @@ import 'package:eco_kitchen/screens/waste.dart';
 import 'package:eco_kitchen/screens/shopping_list.dart';
 import 'package:eco_kitchen/screens/favorites.dart';
 import 'package:eco_kitchen/screens/search_recipe.dart';
+import 'package:eco_kitchen/screens/ai_chef.dart';
 
 // Ana renk kodlarımız
 const Color primaryGreen = Color(0xFF9DB67B);
@@ -33,7 +34,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildFAB() {
     return FloatingActionButton(
       onPressed: () {
-        // TODO: Ana işlev (Örneğin, yeni tarif oluşturma)
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => AiChefScreen()),
+        );
       },
       backgroundColor: fabColor,
       shape: const CircleBorder(),
