@@ -11,10 +11,11 @@ const Color indicatorYellow = Color(0xFFF7C555); // Sarı/Turuncu ok rengi
 
 class TallScreen extends ConsumerStatefulWidget {
   @override
-_TallScreenState createState() => _TallScreenState();
+  _TallScreenState createState() => _TallScreenState();
 }
 
-class _TallScreenState extends ConsumerState<TallScreen> {  late PageController _pageController;
+class _TallScreenState extends ConsumerState<TallScreen> {
+  late PageController _pageController;
   int _currentPage = 175; // Seçili cm değeri
   final int _minHeight = 0;
   final int _maxHeight = 400;
@@ -49,14 +50,16 @@ class _TallScreenState extends ConsumerState<TallScreen> {  late PageController 
         color: isSelected ? lightGrey : Colors.white,
         borderRadius: BorderRadius.circular(15),
         border: isSelected ? Border.all(color: lightGrey, width: 2) : null,
-        boxShadow: isSelected ? [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.3),
-            spreadRadius: 2,
-            blurRadius: 5,
-            offset: const Offset(0, 3),
-          ),
-        ] : null,
+        boxShadow: isSelected
+            ? [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.3),
+                  spreadRadius: 2,
+                  blurRadius: 5,
+                  offset: const Offset(0, 3),
+                ),
+              ]
+            : null,
       ),
       alignment: Alignment.center,
       child: Text(
@@ -150,8 +153,9 @@ class _TallScreenState extends ConsumerState<TallScreen> {  late PageController 
         ),
         actions: <Widget>[
           TextButton(
-            onPressed: () { /* Skip */ },
-            child: const Text('Skip', style: TextStyle(color: Colors.grey, fontSize: 16)),
+            onPressed: () {/* Skip */},
+            child: const Text('Skip',
+                style: TextStyle(color: Colors.grey, fontSize: 16)),
           ),
           const SizedBox(width: 16.0),
         ],
@@ -168,9 +172,24 @@ class _TallScreenState extends ConsumerState<TallScreen> {  late PageController 
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text('How ', style: TextStyle(fontFamily: 'Montserrat', fontSize: 24, fontWeight: FontWeight.bold, color: darkGreen)),
-                  Text('tall', style: TextStyle(fontFamily: 'Montserrat', fontSize: 24, fontWeight: FontWeight.bold, color: primaryGreen)),
-                  const Text(' are you?', style: TextStyle(fontFamily: 'Montserrat', fontSize: 24, fontWeight: FontWeight.bold, color: darkGreen)),
+                  const Text('How ',
+                      style: TextStyle(
+                          fontFamily: 'Montserrat',
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: darkGreen)),
+                  Text('tall',
+                      style: TextStyle(
+                          fontFamily: 'Montserrat',
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: primaryGreen)),
+                  const Text(' are you?',
+                      style: TextStyle(
+                          fontFamily: 'Montserrat',
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: darkGreen)),
                 ],
               ),
             ),
@@ -181,7 +200,8 @@ class _TallScreenState extends ConsumerState<TallScreen> {  late PageController 
               child: Text(
                 'We will use this data to give you a better diet type for you',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontFamily: 'Montserrat', fontSize: 14, color: Colors.grey),
+                style: TextStyle(
+                    fontFamily: 'Montserrat', fontSize: 14, color: Colors.grey),
               ),
             ),
 
@@ -227,7 +247,7 @@ class _TallScreenState extends ConsumerState<TallScreen> {  late PageController 
             // Next Butonu
             ElevatedButton(
               onPressed: () {
-                ref.read(onboardingProvider.notifier).setHeight(_currentPage);
+                // ref.read(onboardingProvider.notifier).setHeight(_currentPage);
                 Navigator.push(
                   context,
                   MaterialPageRoute(

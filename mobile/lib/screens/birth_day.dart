@@ -60,7 +60,8 @@ class _BirthDayScreenState extends ConsumerState<BirthDayScreen> {
   @override
   Widget build(BuildContext context) {
     // Yaş hesaplaması, eğer tarih seçilmişse
-    final int? age = _selectedDate != null ? _calculateAge(_selectedDate!) : null;
+    final int? age =
+        _selectedDate != null ? _calculateAge(_selectedDate!) : null;
 
     return Scaffold(
       appBar: AppBar(
@@ -97,11 +98,19 @@ class _BirthDayScreenState extends ConsumerState<BirthDayScreen> {
               children: [
                 const Text(
                   'Your ',
-                  style: TextStyle(fontFamily: 'Montserrat', fontSize: 24, fontWeight: FontWeight.bold, color: darkGreen),
+                  style: TextStyle(
+                      fontFamily: 'Montserrat',
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: darkGreen),
                 ),
                 Text(
                   'date of birth',
-                  style: TextStyle(fontFamily: 'Montserrat', fontSize: 24, fontWeight: FontWeight.bold, color: primaryGreen),
+                  style: TextStyle(
+                      fontFamily: 'Montserrat',
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: primaryGreen),
                 ),
               ],
             ),
@@ -110,7 +119,8 @@ class _BirthDayScreenState extends ConsumerState<BirthDayScreen> {
             // 2. Açıklama Metni
             const Text(
               'We will use this data to give you a better diet type for you',
-              style: TextStyle(fontFamily: 'Montserrat', fontSize: 14, color: Colors.grey),
+              style: TextStyle(
+                  fontFamily: 'Montserrat', fontSize: 14, color: Colors.grey),
             ),
 
             const SizedBox(height: 48.0),
@@ -124,7 +134,9 @@ class _BirthDayScreenState extends ConsumerState<BirthDayScreen> {
               ),
               alignment: Alignment.center,
               child: Text(
-                age != null ? age.toString() : '—', // Yaş varsa göster, yoksa tire
+                age != null
+                    ? age.toString()
+                    : '—', // Yaş varsa göster, yoksa tire
                 style: const TextStyle(
                   fontFamily: 'Montserrat',
                   fontSize: 50,
@@ -137,9 +149,11 @@ class _BirthDayScreenState extends ConsumerState<BirthDayScreen> {
 
             // 4. Tarih Seçme Alanı
             GestureDetector(
-              onTap: () => _selectDate(context), // Tıklandığında tarih seçici açılır
+              onTap: () =>
+                  _selectDate(context), // Tıklandığında tarih seçici açılır
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 18.0),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 24.0, vertical: 18.0),
                 decoration: BoxDecoration(
                   color: lightGrey,
                   borderRadius: BorderRadius.circular(15.0),
@@ -167,18 +181,22 @@ class _BirthDayScreenState extends ConsumerState<BirthDayScreen> {
 
             // 5. Next Butonu
             ElevatedButton(
-              onPressed: age != null ? () {
-                if (_selectedDate != null) {
-                 ref.read(onboardingProvider.notifier).setBirthDate(_selectedDate!);
-                   }
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    // Yeni sayfanızı buraya yönlendiriyoruz
-                    builder: (context) => TallScreen(),
-                  ),
-                );
-              } : null, // Yaş seçilmemişse butonu devre dışı bırakır (null)
+              onPressed: age != null
+                  ? () {
+                      // if (_selectedDate != null) {
+                      // ref
+                      //   .read(onboardingProvider.notifier)
+                      // .setBirthDate(_selectedDate!);
+                      //}
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          // Yeni sayfanızı buraya yönlendiriyoruz
+                          builder: (context) => TallScreen(),
+                        ),
+                      );
+                    }
+                  : null, // Yaş seçilmemişse butonu devre dışı bırakır (null)
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(double.infinity, 56),
                 backgroundColor: primaryGreen,

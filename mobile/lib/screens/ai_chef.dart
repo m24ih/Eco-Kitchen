@@ -4,6 +4,7 @@ import 'package:eco_kitchen/screens/home.dart';
 import 'package:eco_kitchen/screens/favorites.dart';
 import 'package:eco_kitchen/screens/search_recipe.dart';
 import 'package:eco_kitchen/screens/history.dart';
+import 'package:eco_kitchen/screens/recipe.dart';
 
 const Color primaryGreen = Color(0xFF9DB67B);
 const Color secondaryGreen = Color(0xFFE4EEE1);
@@ -16,7 +17,6 @@ class AiChefScreen extends StatefulWidget {
 
 class _AiChefScreenState extends State<AiChefScreen> {
   int _bottomNavIndex = 0;
-  final TextEditingController _messageController = TextEditingController();
 
   final iconList = <IconData>[
     Icons.home_outlined,
@@ -25,28 +25,71 @@ class _AiChefScreenState extends State<AiChefScreen> {
     Icons.person_outline,
   ];
 
-  // Sample chat messages
-  final List<Map<String, dynamic>> _messages = [
+  // Sample recipe data
+  final List<Map<String, dynamic>> _recipes = [
     {
-      'isUser': true,
-      'text': 'I want some sweet recipes',
+      'title': 'Chicken Curry',
+      'image': 'assets/images/meal.png',
+      'time': '45 min',
+      'rating': 5,
+      'servings': '2,458',
+      'description':
+          'This recipe requires basic ingredients and minimal prep time, making it ideal for busy days...',
+      'isFavorite': true,
     },
     {
-      'isUser': false,
-      'text':
-          'Absouletly ! Based on your preferences I have curatured 20 sweet recipes just for you. Ready to explore them ?',
-      'recipe': {
-        'title': 'Chicken Curry',
-        'image': 'assets/images/meal.png',
-        'rating': 5,
-        'description':
-            'This recipe requires basic ingredients and minimal prep time, making it ideal for busy days...',
-        'time': '45 min',
-        'servings': '2,458',
-        'isFavorite': true,
-      },
+      'title': 'Vegetable Stir Fry',
+      'image': 'assets/images/meal.png',
+      'time': '25 min',
+      'rating': 4.5,
+      'servings': '1,832',
+      'description':
+          'A healthy and colorful mix of fresh vegetables with a savory sauce...',
+      'isFavorite': false,
+    },
+    {
+      'title': 'Pasta Primavera',
+      'image': 'assets/images/meal.png',
+      'time': '30 min',
+      'rating': 4.7,
+      'servings': '3,105',
+      'description':
+          'Classic Italian pasta with seasonal vegetables and parmesan cheese...',
+      'isFavorite': true,
+    },
+    {
+      'title': 'Grilled Salmon',
+      'image': 'assets/images/meal.png',
+      'time': '35 min',
+      'rating': 4.9,
+      'servings': '2,891',
+      'description':
+          'Fresh salmon fillet grilled to perfection with herbs and lemon...',
+      'isFavorite': false,
+    },
+    {
+      'title': 'Mushroom Risotto',
+      'image': 'assets/images/meal.png',
+      'time': '40 min',
+      'rating': 4.8,
+      'servings': '1,654',
+      'description':
+          'Creamy Italian rice dish with wild mushrooms and white wine...',
+      'isFavorite': true,
     },
   ];
+
+  void _navigateToRecipe(Map<String, dynamic> recipe) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RecipeScreen(
+          title: recipe['title'],
+          image: recipe['image'],
+        ),
+      ),
+    );
+  }
 
   Widget _buildFAB() {
     return FloatingActionButton(
@@ -68,12 +111,6 @@ class _AiChefScreenState extends State<AiChefScreen> {
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _messageController.dispose();
-    super.dispose();
   }
 
   @override
@@ -116,22 +153,228 @@ class _AiChefScreenState extends State<AiChefScreen> {
           }
         },
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Row(
+      body: Stack(
+        children: [
+          SafeArea(
+            child: Column(
+              children: [
+                // Header
+                _buildHeader(),
+
+                // Scrollable content (recipes)
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Recipe cards
+                        ..._recipes
+                            .map((recipe) => _buildRecipeCard(recipe))
+                            .toList(),
+
+                        SizedBox(height: 100),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Floating AI Assistant Button
+          Positioned(
+            left: 16,
+            bottom: 20,
+            child: _buildAiAssistantButton(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAiAssistantButton() {
+    return GestureDetector(
+      onTap: _showAiOptions,
+      child: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          color: secondaryGreen,
+          shape: BoxShape.circle,
+          border: Border.all(color: primaryGreen, width: 2),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 8,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Icon(
+          Icons.chat_bubble_outline,
+          color: primaryGreen,
+          size: 28,
+        ),
+      ),
+    );
+  }
+
+  void _showAllergyDialog() {
+    List<String> allergies = [
+      'Fıstık',
+      'Glüten',
+      'Süt Ürünleri',
+      'Yumurta',
+      'Kabuklu Deniz Ürünleri',
+      'Soya',
+      'Balık',
+      'Susam',
+    ];
+    List<String> selectedAllergies = [];
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.warning_amber, color: Colors.orange, size: 28),
+              SizedBox(width: 10),
+              Text(
+                'Alerji Seçin',
+                style: TextStyle(
+                  color: primaryGreen,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Hangi besinlere alerjiniz var?',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                SizedBox(height: 16),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: allergies.map((allergy) {
+                    bool isSelected = selectedAllergies.contains(allergy);
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          if (isSelected) {
+                            selectedAllergies.remove(allergy);
+                          } else {
+                            selectedAllergies.add(allergy);
+                          }
+                        });
+                      },
+                      child: Container(
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: isSelected ? primaryGreen : lightGreen,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: primaryGreen,
+                            width: isSelected ? 2 : 1,
+                          ),
+                        ),
+                        child: Text(
+                          allergy,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: isSelected ? Colors.white : primaryGreen,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'İptal',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                if (selectedAllergies.isNotEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                          '${selectedAllergies.join(", ")} alerjileri filtreleniyor...'),
+                      backgroundColor: primaryGreen,
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryGreen,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+              child: Text(
+                'Filtrele',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAiOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.6,
+        ),
+        padding: EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
                 children: [
-                  // Logo
                   Container(
-                    width: 50,
-                    height: 50,
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
                       color: secondaryGreen,
                       shape: BoxShape.circle,
-                      border: Border.all(color: primaryGreen, width: 2),
                     ),
                     child: ClipOval(
                       child: Padding(
@@ -144,313 +387,343 @@ class _AiChefScreenState extends State<AiChefScreen> {
                     ),
                   ),
                   SizedBox(width: 12),
-                  // Title
                   Text(
-                    'reCook ',
+                    'AI Chef Asistanı',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: primaryGreen,
                     ),
                   ),
-                  Text(
-                    'AI Chef',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: primaryGreen,
-                    ),
-                  ),
-                  Spacer(),
-                  // Menu icon
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => HistoryScreen()),
-                      );
-                    },
-                    child: Icon(
-                      Icons.menu,
-                      color: primaryGreen,
-                      size: 26,
-                    ),
-                  ),
                 ],
               ),
-            ),
-
-            // Chat messages
-            Expanded(
-              child: ListView.builder(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                itemCount: _messages.length,
-                itemBuilder: (context, index) {
-                  final message = _messages[index];
-                  if (message['isUser']) {
-                    return _buildUserMessage(message['text']);
-                  } else {
-                    return _buildAiMessage(message);
-                  }
-                },
-              ),
-            ),
-
-            // Message input
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-              child: Container(
-                height: 50,
-                decoration: BoxDecoration(
-                  color: secondaryGreen.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(25),
-                  border: Border.all(color: Colors.grey[300]!, width: 1),
-                ),
-                child: Row(
-                  children: [
-                    SizedBox(width: 20),
-                    Expanded(
-                      child: TextField(
-                        controller: _messageController,
-                        decoration: InputDecoration(
-                          hintText: 'Message',
-                          hintStyle: TextStyle(color: Colors.grey[400]),
-                          border: InputBorder.none,
-                        ),
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        // Voice input
-                      },
-                      child: Container(
-                        padding: EdgeInsets.all(8),
-                        child: Icon(
-                          Icons.mic_none,
-                          color: primaryGreen,
-                          size: 24,
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 8),
-                  ],
+              SizedBox(height: 16),
+              Text(
+                'Ne tür tarifler görmek istersiniz?',
+                style: TextStyle(
+                  fontSize: 15,
+                  color: Colors.grey[700],
                 ),
               ),
-            ),
+              SizedBox(height: 16),
+              // Options
+              _buildAiOptionItem(Icons.eco, 'Vejetaryan', 'Etsiz tarifler'),
+              _buildAiOptionItem(Icons.cake, 'Tatlı', 'Tatlı tarifler'),
+              _buildAiOptionItem(
+                  Icons.dinner_dining, 'Tuzlu', 'Tuzlu yemekler'),
+              _buildAiOptionItem(
+                  Icons.timer, 'Daha Hızlı', '30 dakikadan kısa'),
+              _buildAiOptionItem(
+                  Icons.warning_amber, 'Alerji', 'Alerjenlere göre filtrele'),
+              SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-            SizedBox(height: 60),
+  Widget _buildAiOptionItem(IconData icon, String title, String subtitle) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.pop(context);
+        if (title == 'Alerji') {
+          _showAllergyDialog();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$title tarifleri filtreleniyor...'),
+              backgroundColor: primaryGreen,
+            ),
+          );
+        }
+      },
+      child: Container(
+        margin: EdgeInsets.only(bottom: 12),
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: lightGreen,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: primaryGreen.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: primaryGreen, size: 24),
+            SizedBox(width: 16),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+            Spacer(),
+            Icon(Icons.arrow_forward_ios, color: primaryGreen, size: 16),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildUserMessage(String text) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Text(
-          'You',
-          style: TextStyle(
-            fontSize: 13,
-            color: Colors.grey[600],
-          ),
-        ),
-        SizedBox(height: 4),
-        Container(
-          margin: EdgeInsets.only(left: 60),
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: secondaryGreen,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Text(
-            text.isEmpty ? '  ' : text,
-            style: TextStyle(
-              fontSize: 15,
-              color: Colors.grey,
-            ),
-          ),
-        ),
-        SizedBox(height: 16),
-      ],
-    );
-  }
-
-  Widget _buildAiMessage(Map<String, dynamic> message) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'AI Chef',
-          style: TextStyle(
-            fontSize: 13,
-            color: Colors.grey[600],
-          ),
-        ),
-        SizedBox(height: 4),
-        // AI response bubble
-        Container(
-          margin: EdgeInsets.only(right: 40),
-          padding: EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: secondaryGreen,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Text(
-            message['text'],
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey,
-              height: 1.4,
-            ),
-          ),
-        ),
-        SizedBox(height: 12),
-        // Recipe card if exists
-        if (message['recipe'] != null) _buildRecipeCard(message['recipe']),
-        SizedBox(height: 16),
-      ],
-    );
-  }
-
-  Widget _buildRecipeCard(Map<String, dynamic> recipe) {
-    return Container(
-      decoration: BoxDecoration(
-        color: primaryGreen,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: Row(
         children: [
-          // Recipe image with favorite button
-          Stack(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(20),
-                  topRight: Radius.circular(20),
-                ),
+          // Logo
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: secondaryGreen,
+              shape: BoxShape.circle,
+              border: Border.all(color: primaryGreen, width: 2),
+            ),
+            child: ClipOval(
+              child: Padding(
+                padding: EdgeInsets.all(6),
                 child: Image.asset(
-                  recipe['image'],
-                  height: 180,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
+                  'assets/images/logo.png',
+                  fit: BoxFit.contain,
                 ),
               ),
-              // Favorite button
-              Positioned(
-                top: 12,
-                right: 12,
-                child: Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
+            ),
+          ),
+          SizedBox(width: 12),
+          // Title
+          Text(
+            'AI Chef',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: primaryGreen,
+            ),
+          ),
+          Spacer(),
+          // Menu icon with popup
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'history') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => HistoryScreen()),
+                );
+              } else if (value == 'new_chat') {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Yeni sohbet başlatıldı!'),
+                    backgroundColor: primaryGreen,
                   ),
-                  child: Icon(
-                    recipe['isFavorite']
-                        ? Icons.favorite
-                        : Icons.favorite_border,
-                    color: recipe['isFavorite'] ? Colors.red[400] : Colors.grey,
-                    size: 18,
-                  ),
+                );
+              }
+            },
+            icon: Icon(
+              Icons.menu,
+              color: primaryGreen,
+              size: 26,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            color: Colors.white,
+            elevation: 4,
+            itemBuilder: (BuildContext context) => [
+              PopupMenuItem<String>(
+                value: 'history',
+                child: Row(
+                  children: [
+                    Icon(Icons.history, color: primaryGreen, size: 22),
+                    SizedBox(width: 12),
+                    Text(
+                      'History',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              PopupMenuItem<String>(
+                value: 'new_chat',
+                child: Row(
+                  children: [
+                    Icon(Icons.add_comment_outlined,
+                        color: primaryGreen, size: 22),
+                    SizedBox(width: 12),
+                    Text(
+                      'New Chat',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          // Recipe info
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecipeCard(Map<String, dynamic> recipe) {
+    return GestureDetector(
+      onTap: () => _navigateToRecipe(recipe),
+      child: Container(
+        margin: EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: primaryGreen,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Recipe image with favorite button
+            Stack(
               children: [
-                // Title and rating
-                Row(
-                  children: [
-                    Text(
-                      recipe['title'],
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                    SizedBox(width: 8),
-                    Icon(Icons.star, color: Colors.white, size: 14),
-                    SizedBox(width: 2),
-                    Text(
-                      '${recipe['rating']}',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
+                ClipRRect(
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
+                  ),
+                  child: Image.asset(
+                    recipe['image'],
+                    height: 180,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
                 ),
-                SizedBox(height: 6),
-                // Description and details
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        recipe['description'],
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.white.withOpacity(0.9),
-                          height: 1.3,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                // Favorite button
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
                     ),
-                    SizedBox(width: 8),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.access_time,
-                                color: Colors.white, size: 12),
-                            SizedBox(width: 4),
-                            Text(
-                              recipe['time'],
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 4),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              recipe['servings'],
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.white,
-                              ),
-                            ),
-                            SizedBox(width: 4),
-                            Icon(Icons.chat_bubble_outline,
-                                color: Colors.white, size: 12),
-                          ],
-                        ),
-                      ],
+                    child: Icon(
+                      recipe['isFavorite'] == true
+                          ? Icons.favorite
+                          : Icons.favorite_border,
+                      color: recipe['isFavorite'] == true
+                          ? Colors.red[400]
+                          : Colors.grey,
+                      size: 20,
                     ),
-                  ],
+                  ),
                 ),
               ],
             ),
-          ),
-        ],
+            // Recipe info
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Title and rating
+                  Row(
+                    children: [
+                      Text(
+                        recipe['title'],
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                      SizedBox(width: 10),
+                      Icon(Icons.star, color: Colors.white, size: 16),
+                      SizedBox(width: 4),
+                      Text(
+                        '${recipe['rating']}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 8),
+                  // Description and details
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          recipe['description'] ?? '',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.white.withOpacity(0.9),
+                            height: 1.3,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.access_time,
+                                  color: Colors.white, size: 14),
+                              SizedBox(width: 4),
+                              Text(
+                                recipe['time'],
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 6),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                recipe['servings'] ?? '',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              SizedBox(width: 4),
+                              Icon(Icons.chat_bubble_outline,
+                                  color: Colors.white, size: 14),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

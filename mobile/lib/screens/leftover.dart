@@ -102,6 +102,19 @@ class _LeftoverScreenState extends State<LeftoverScreen> {
     );
   }
 
+  void _deleteIngredient(int index) {
+    final deletedItem = _ingredients[index]['name'];
+    setState(() {
+      _ingredients.removeAt(index);
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$deletedItem removed!'),
+        backgroundColor: primaryGreen,
+      ),
+    );
+  }
+
   Widget _buildFAB() {
     return FloatingActionButton(
       onPressed: () {
@@ -220,6 +233,7 @@ class _LeftoverScreenState extends State<LeftoverScreen> {
                   return _buildIngredientItem(
                     name: ingredient['name']!,
                     quantity: ingredient['quantity']!,
+                    onDelete: () => _deleteIngredient(index),
                   );
                 },
               ),
@@ -230,8 +244,11 @@ class _LeftoverScreenState extends State<LeftoverScreen> {
     );
   }
 
-  Widget _buildIngredientItem(
-      {required String name, required String quantity}) {
+  Widget _buildIngredientItem({
+    required String name,
+    required String quantity,
+    required VoidCallback onDelete,
+  }) {
     return Container(
       padding: EdgeInsets.symmetric(vertical: 16),
       decoration: BoxDecoration(
@@ -243,7 +260,6 @@ class _LeftoverScreenState extends State<LeftoverScreen> {
         ),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Ingredient name
@@ -263,6 +279,16 @@ class _LeftoverScreenState extends State<LeftoverScreen> {
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[600],
+            ),
+          ),
+          SizedBox(width: 12),
+          // Delete button
+          GestureDetector(
+            onTap: onDelete,
+            child: Icon(
+              Icons.delete_outline,
+              color: Colors.red[400],
+              size: 22,
             ),
           ),
         ],
