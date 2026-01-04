@@ -4,6 +4,7 @@ import 'package:eco_kitchen/screens/home.dart';
 import 'package:eco_kitchen/screens/favorites.dart';
 import 'package:eco_kitchen/screens/recipe.dart';
 import 'package:eco_kitchen/screens/ai_chef.dart';
+import 'package:eco_kitchen/screens/profile.dart';
 import 'package:eco_kitchen/data/favorites_data.dart';
 
 const Color primaryGreen = Color(0xFF9DB67B);
@@ -137,6 +138,11 @@ class _SearchRecipeScreenState extends State<SearchRecipeScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => FavoritesScreen()),
+            );
+          } else if (index == 3) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => ProfileScreen()),
             );
           } else {
             setState(() => _bottomNavIndex = index);

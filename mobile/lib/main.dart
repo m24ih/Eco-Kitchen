@@ -7,6 +7,7 @@ import 'package:eco_kitchen/screens/verification.dart';
 import 'package:eco_kitchen/screens/weight.dart';
 import 'package:flutter/material.dart';
 import 'package:eco_kitchen/screens/home.dart';
+import 'package:eco_kitchen/screens/splash_screen.dart';
 import 'screens/onboarding1.dart';
 
 // Renk kodunu tanımlayalım
@@ -44,7 +45,7 @@ class MyApp extends StatelessWidget {
       ),
 
       // Uygulamanın ilk açılacak sayfasını belirliyoruz.
-      home: HomeScreen(),
+      home: SplashScreen(),
     );
   }
 }

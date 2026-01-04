@@ -7,6 +7,7 @@ import 'package:eco_kitchen/screens/shopping_list.dart';
 import 'package:eco_kitchen/screens/favorites.dart';
 import 'package:eco_kitchen/screens/search_recipe.dart';
 import 'package:eco_kitchen/screens/ai_chef.dart';
+import 'package:eco_kitchen/screens/profile.dart';
 
 // Ana renk kodlarımız
 const Color primaryGreen = Color(0xFF9DB67B);
@@ -179,6 +180,12 @@ class _HomeScreenState extends State<HomeScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => FavoritesScreen()),
+            );
+          } else if (index == 3) {
+            // Profile icon tapped
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => ProfileScreen()),
             );
           } else {
             setState(() => _bottomNavIndex = index);

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:eco_kitchen/screens/home.dart';
 import 'package:eco_kitchen/screens/register_screen.dart';
+import 'package:eco_kitchen/screens/forgot.dart';
 
 const Color primaryGreen = Color(0xFF9DB67B);
 const Color secondaryGreen = Color(0xFFE4EEE1);
@@ -169,7 +170,11 @@ class _SignInScreenState extends State<SignInScreen> {
                 // Forgot Password
                 GestureDetector(
                   onTap: () {
-                    // TODO: Implement forgot password
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => ForgotPasswordScreen()),
+                    );
                   },
                   child: Text(
                     'Forgot Password?',

@@ -5,6 +5,8 @@ import 'package:eco_kitchen/screens/favorites.dart';
 import 'package:eco_kitchen/screens/search_recipe.dart';
 import 'package:eco_kitchen/screens/history.dart';
 import 'package:eco_kitchen/screens/recipe.dart';
+import 'package:eco_kitchen/screens/profile.dart';
+import 'package:eco_kitchen/data/favorites_data.dart';
 
 const Color primaryGreen = Color(0xFF9DB67B);
 const Color secondaryGreen = Color(0xFFE4EEE1);
@@ -148,6 +150,11 @@ class _AiChefScreenState extends State<AiChefScreen> {
               context,
               MaterialPageRoute(builder: (context) => FavoritesScreen()),
             );
+          } else if (index == 3) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => ProfileScreen()),
+            );
           } else {
             setState(() => _bottomNavIndex = index);
           }
@@ -221,16 +228,17 @@ class _AiChefScreenState extends State<AiChefScreen> {
 
   void _showAllergyDialog() {
     List<String> allergies = [
-      'Fıstık',
-      'Glüten',
-      'Süt Ürünleri',
-      'Yumurta',
-      'Kabuklu Deniz Ürünleri',
-      'Soya',
-      'Balık',
-      'Susam',
+      'Peanuts',
+      'Gluten',
+      'Dairy',
+      'Eggs',
+      'Shellfish',
+      'Soy',
+      'Fish',
+      'Sesame',
     ];
     List<String> selectedAllergies = [];
+    TextEditingController customAllergyController = TextEditingController();
 
     showDialog(
       context: context,
@@ -240,14 +248,72 @@ class _AiChefScreenState extends State<AiChefScreen> {
             borderRadius: BorderRadius.circular(20),
           ),
           title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(Icons.warning_amber, color: Colors.orange, size: 28),
-              SizedBox(width: 10),
-              Text(
-                'Alerji Seçin',
-                style: TextStyle(
-                  color: primaryGreen,
-                  fontWeight: FontWeight.bold,
+              Row(
+                children: [
+                  Icon(Icons.warning_amber, color: Colors.orange, size: 28),
+                  SizedBox(width: 10),
+                  Text(
+                    'Select Allergies',
+                    style: TextStyle(
+                      color: primaryGreen,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              GestureDetector(
+                onTap: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: Text('Add Custom Allergy'),
+                      content: TextField(
+                        controller: customAllergyController,
+                        decoration: InputDecoration(
+                          hintText: 'Enter allergy name',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: Text('Cancel',
+                              style: TextStyle(color: Colors.grey)),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            if (customAllergyController.text.isNotEmpty) {
+                              setState(() {
+                                allergies.add(customAllergyController.text);
+                                selectedAllergies
+                                    .add(customAllergyController.text);
+                              });
+                              customAllergyController.clear();
+                            }
+                            Navigator.pop(context);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryGreen,
+                          ),
+                          child: Text('Add',
+                              style: TextStyle(color: Colors.white)),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: secondaryGreen,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.add, color: primaryGreen, size: 20),
                 ),
               ),
             ],
@@ -258,7 +324,7 @@ class _AiChefScreenState extends State<AiChefScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Hangi besinlere alerjiniz var?',
+                  'Which foods are you allergic to?',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey[600],
@@ -310,7 +376,7 @@ class _AiChefScreenState extends State<AiChefScreen> {
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: Text(
-                'İptal',
+                'Cancel',
                 style: TextStyle(color: Colors.grey),
               ),
             ),
@@ -321,7 +387,7 @@ class _AiChefScreenState extends State<AiChefScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                          '${selectedAllergies.join(", ")} alerjileri filtreleniyor...'),
+                          'Filtering recipes without ${selectedAllergies.join(", ")}...'),
                       backgroundColor: primaryGreen,
                     ),
                   );
@@ -334,7 +400,7 @@ class _AiChefScreenState extends State<AiChefScreen> {
                 ),
               ),
               child: Text(
-                'Filtrele',
+                'Filter',
                 style: TextStyle(color: Colors.white),
               ),
             ),
@@ -388,7 +454,7 @@ class _AiChefScreenState extends State<AiChefScreen> {
                   ),
                   SizedBox(width: 12),
                   Text(
-                    'AI Chef Asistanı',
+                    'AI Chef Assistant',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -399,7 +465,7 @@ class _AiChefScreenState extends State<AiChefScreen> {
               ),
               SizedBox(height: 16),
               Text(
-                'Ne tür tarifler görmek istersiniz?',
+                'What kind of recipes would you like to see?',
                 style: TextStyle(
                   fontSize: 15,
                   color: Colors.grey[700],
@@ -407,14 +473,13 @@ class _AiChefScreenState extends State<AiChefScreen> {
               ),
               SizedBox(height: 16),
               // Options
-              _buildAiOptionItem(Icons.eco, 'Vejetaryan', 'Etsiz tarifler'),
-              _buildAiOptionItem(Icons.cake, 'Tatlı', 'Tatlı tarifler'),
+              _buildAiOptionItem(Icons.eco, 'Vegetarian', 'Meat-free recipes'),
+              _buildAiOptionItem(Icons.cake, 'Dessert', 'Sweet recipes'),
               _buildAiOptionItem(
-                  Icons.dinner_dining, 'Tuzlu', 'Tuzlu yemekler'),
+                  Icons.dinner_dining, 'Savory', 'Savory dishes'),
+              _buildAiOptionItem(Icons.timer, 'Faster', 'Less than 30 minutes'),
               _buildAiOptionItem(
-                  Icons.timer, 'Daha Hızlı', '30 dakikadan kısa'),
-              _buildAiOptionItem(
-                  Icons.warning_amber, 'Alerji', 'Alerjenlere göre filtrele'),
+                  Icons.warning_amber, 'Allergy', 'Filter by allergens'),
               SizedBox(height: 20),
             ],
           ),
@@ -427,12 +492,12 @@ class _AiChefScreenState extends State<AiChefScreen> {
     return GestureDetector(
       onTap: () {
         Navigator.pop(context);
-        if (title == 'Alerji') {
+        if (title == 'Allergy') {
           _showAllergyDialog();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('$title tarifleri filtreleniyor...'),
+              content: Text('Filtering $title recipes...'),
               backgroundColor: primaryGreen,
             ),
           );
@@ -614,21 +679,41 @@ class _AiChefScreenState extends State<AiChefScreen> {
                 Positioned(
                   top: 12,
                   right: 12,
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      recipe['isFavorite'] == true
-                          ? Icons.favorite
-                          : Icons.favorite_border,
-                      color: recipe['isFavorite'] == true
-                          ? Colors.red[400]
-                          : Colors.grey,
-                      size: 20,
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        recipe['isFavorite'] = !(recipe['isFavorite'] ?? false);
+                      });
+                      // Gerçekten favorilere ekle/çıkar
+                      favoritesData.toggleFavorite(recipe);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            recipe['isFavorite'] == true
+                                ? '${recipe['title']} favorilere eklendi!'
+                                : '${recipe['title']} favorilerden çıkarıldı!',
+                          ),
+                          backgroundColor: primaryGreen,
+                          duration: Duration(seconds: 1),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        recipe['isFavorite'] == true
+                            ? Icons.favorite
+                            : Icons.favorite_border,
+                        color: recipe['isFavorite'] == true
+                            ? Colors.red[400]
+                            : Colors.grey,
+                        size: 20,
+                      ),
                     ),
                   ),
                 ),

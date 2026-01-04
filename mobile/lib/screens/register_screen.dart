@@ -40,59 +40,30 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     setState(() => _isLoading = true);
 
-    final onboardingData = ref.read(onboardingProvider);
-    final dio = ref.read(apiServiceProvider);
+    // API çağrısı geçici olarak devre dışı - Backend entegrasyonu için
+    // final onboardingData = ref.read(onboardingProvider);
+    // final dio = ref.read(apiServiceProvider);
 
-    try {
-      final response = await dio.post('/auth/register', data: {
-        "email": _emailController.text.trim(),
-        "password": _passwordController.text,
-        "name": _nameController.text.trim(),
-        "height": onboardingData.height ?? 170,
-        "weight": onboardingData.weight ?? 70,
-        "activity_level": onboardingData.activityLevel ?? 0.5,
-        "goal": onboardingData.goal ?? "stay_healthy",
-        "birth_date": onboardingData.birthDate?.toIso8601String(),
-      });
+    // Geçici: Doğrudan verification ekranına git
+    await Future.delayed(Duration(milliseconds: 500)); // Simüle loading
 
-      // Kayıt başarılı - Verification ekranına git
-      if (mounted) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(
-                  "Registration successful! Enter the verification code.")),
-        );
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => VerificationScreen(
-              email: _emailController.text.trim(),
-            ),
-          ),
-        );
-      }
-    } on DioException catch (e) {
+    if (mounted) {
       setState(() => _isLoading = false);
-
-      // Backend bağlantı hatası olsa bile verification ekranına git (test için)
-      // Gerçek uygulamada bu kısmı kaldırabilirsiniz
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Registration is ongoing..."),
-            backgroundColor: Colors.orange,
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content:
+              Text("Registration successful! Enter the verification code."),
+          backgroundColor: Color(0xFF9DB67B),
+        ),
+      );
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => VerificationScreen(
+            email: _emailController.text.trim(),
           ),
-        );
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => VerificationScreen(
-              email: _emailController.text.trim(),
-            ),
-          ),
-        );
-      }
+        ),
+      );
     }
   }
 
