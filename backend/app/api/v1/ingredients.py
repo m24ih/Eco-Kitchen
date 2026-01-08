@@ -6,7 +6,7 @@ from typing import List
 from app.core.database import get_db
 from app.api.deps import get_current_user
 from app.models.user import User
-from app.models.ingredient import Ingredient
+from app.models.inventory_item import InventoryItem
 from app.schemas.ingredient import IngredientCreate, IngredientOut
 
 router = APIRouter()
@@ -18,7 +18,7 @@ async def create_ingredient(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user) # Sadece giriş yapanlar ekleyebilir
 ):
-    new_ingredient = Ingredient(
+    new_ingredient = InventoryItem(
         name=ingredient.name,
         quantity=ingredient.quantity,
         unit=ingredient.unit,
@@ -36,7 +36,9 @@ async def read_ingredients(
     current_user: User = Depends(get_current_user)
 ):
     # Veritabanına: "Sahibi 'ben' olan malzemeleri getir" diyoruz
-    result = await db.execute(select(Ingredient).where(Ingredient.owner_id == current_user.id))
+    result = await db.execute(
+        select(InventoryItem).where(InventoryItem.owner_id == current_user.id)
+    )
     return result.scalars().all()
 
 # 3. Malzeme Silme
@@ -47,7 +49,9 @@ async def delete_ingredient(
     current_user: User = Depends(get_current_user)
 ):
     # Önce malzemeyi bul
-    result = await db.execute(select(Ingredient).where(Ingredient.id == ingredient_id))
+    result = await db.execute(
+        select(InventoryItem).where(InventoryItem.id == ingredient_id)
+    )
     ingredient = result.scalars().first()
 
     # Malzeme yoksa hata ver

@@ -5,7 +5,7 @@ from sqlalchemy.future import select
 from app.core.database import get_db
 from app.api.deps import get_current_user
 from app.models.user import User
-from app.models.ingredient import Ingredient
+from app.models.inventory_item import InventoryItem
 from app.services.ai_service import generate_recipe_from_ingredients
 
 router = APIRouter()
@@ -16,7 +16,9 @@ async def suggest_recipe(
     current_user: User = Depends(get_current_user)
 ):
     # 1. Kullanıcının malzemelerini çek
-    result = await db.execute(select(Ingredient).where(Ingredient.owner_id == current_user.id))
+    result = await db.execute(
+        select(InventoryItem).where(InventoryItem.owner_id == current_user.id)
+    )
     ingredients = result.scalars().all()
     
     if not ingredients:

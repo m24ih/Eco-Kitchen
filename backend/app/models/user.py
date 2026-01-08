@@ -20,4 +20,10 @@ class User(Base):
     birth_date = Column(DateTime(timezone=True), nullable=True)
     
     # İlişkiler
-    ingredients = relationship("Ingredient", back_populates="owner")
+    ingredients = relationship(
+        "InventoryItem",
+        viewonly=True,
+        overlaps="inventory_items"
+    )
+    inventory_items = relationship("InventoryItem", back_populates="owner")
+    shopping_list_items = relationship("ShoppingListItem", back_populates="owner")
