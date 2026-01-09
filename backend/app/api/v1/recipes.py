@@ -1,34 +1,67 @@
-from fastapi import APIRouter, Depends, HTTPException
+from typing import List
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
-from app.api.deps import get_current_user
-from app.models.user import User
-from app.models.inventory_item import InventoryItem
-from app.services.ai_service import generate_recipe_from_ingredients
+from app.models.recipe import Recipe
+from app.models.recipe_ingredient import RecipeIngredient
+from app.schemas.recipe import RecipeListOut, RecipeOut, RecipeIngredientOut
 
 router = APIRouter()
 
-@router.post("/generate")
-async def suggest_recipe(
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+
+@router.get("/", response_model=List[RecipeListOut])
+async def list_recipes(
+    featured: bool | None = Query(default=None), # ARAMA SEKMESI ÖNE ÇIKAN YEMEKLERİ GÖSTERMEK İÇİN KULLANILACAK
+    limit: int = Query(default=20, ge=1, le=50), # KAÇ TANE ÖNE ÇIKAN YEMEK GÖSTERİLCEK
+    offset: int = Query(default=0, ge=0), # SAYFALAMA İÇİN KULLANILACAK
+    db: AsyncSession = Depends(get_db)
 ):
-    # 1. Kullanıcının malzemelerini çek
+    query = select(Recipe)
+    if featured is not None:
+        query = query.where(Recipe.is_featured == featured)
+    query = query.limit(limit).offset(offset)
+    result = await db.execute(query)
+    return result.scalars().all()
+
+
+@router.get("/{recipe_id}", response_model=RecipeOut)
+async def read_recipe(
+    recipe_id: int,
+    db: AsyncSession = Depends(get_db)
+):
     result = await db.execute(
-        select(InventoryItem).where(InventoryItem.owner_id == current_user.id)
+        select(Recipe)
+        .where(Recipe.id == recipe_id)
+        .options(
+            selectinload(Recipe.ingredients).selectinload(RecipeIngredient.ingredient)
+        )
     )
-    ingredients = result.scalars().all()
-    
-    if not ingredients:
-        raise HTTPException(status_code=400, detail="Dolabınız boş! Önce malzeme ekleyin.")
-    
-    # 2. Sadece malzeme isimlerini listeye çevir (Örn: ["Yumurta", "Süt"])
-    ingredient_names = [i.name for i in ingredients]
-    
-    # 3. AI Servisine gönder
-    recipe_text = await generate_recipe_from_ingredients(ingredient_names)
-    
-    # 4. Sonucu döndür
-    return {"recipe": recipe_text}
+    recipe = result.scalars().first()
+    if not recipe:
+        raise HTTPException(status_code=404, detail="Recipe not found")
+
+    ingredients = [
+        RecipeIngredientOut(
+            ingredient_id=ri.ingredient_catalog_id,
+            name=ri.ingredient.name,
+            quantity=ri.quantity,
+            unit=ri.ingredient.default_unit,
+        )
+        for ri in recipe.ingredients
+    ]
+
+    return RecipeOut(
+        id=recipe.id,
+        name=recipe.name,
+        image_url=recipe.image_url,
+        instructions=recipe.instructions,
+        servings=recipe.servings,
+        prep_time_minutes=recipe.prep_time_minutes,
+        cook_time_minutes=recipe.cook_time_minutes,
+        difficulty=recipe.difficulty,
+        is_featured=recipe.is_featured,
+        ingredients=ingredients,
+    )
