@@ -27,3 +27,4 @@ class User(Base):
     )
     inventory_items = relationship("InventoryItem", back_populates="owner")
     shopping_list_items = relationship("ShoppingListItem", back_populates="owner")
+    favorites_recipes = relationship("FavoriteRecipe", cascade="all, delete-orphan")

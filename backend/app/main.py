@@ -9,10 +9,12 @@ from app.models.inventory_item import InventoryItem
 from app.models.shopping_list_item import ShoppingListItem
 from app.models.recipe import Recipe
 from app.models.recipe_ingredient import RecipeIngredient
+from app.models.favorite_recipe import FavoriteRecipe
 from app.api.v1 import recipes
 from app.api.v1 import catalog
 from app.api.v1 import inventory
 from app.api.v1 import shopping_list
+from app.api.v1 import favorites
 
 
 @asynccontextmanager
@@ -32,6 +34,7 @@ app.include_router(recipes.router, prefix="/api/v1/recipes", tags=["recipes"])
 app.include_router(inventory.router, prefix="/api/v1/inventory", tags=["inventory"])
 app.include_router(catalog.router, prefix="/api/v1/catalog", tags=["catalog"])
 app.include_router(shopping_list.router, prefix="/api/v1/shopping-list", tags=["shopping-list"])
+app.include_router(favorites.router, prefix="/api/v1/favorites", tags=["favorites"])
 
 @app.get("/")
 async def root():
