@@ -9,6 +9,8 @@ from app.models.inventory_item import InventoryItem
 from app.models.shopping_list_item import ShoppingListItem
 from app.models.recipe import Recipe
 from app.models.recipe_ingredient import RecipeIngredient
+from app.models.recipe_step import RecipeStep
+from app.models.recipe_step_ingredient import RecipeStepIngredient
 from app.models.favorite_recipe import FavoriteRecipe
 from app.api.v1 import recipes
 from app.api.v1 import catalog

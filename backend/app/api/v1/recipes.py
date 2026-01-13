@@ -7,7 +7,15 @@ from sqlalchemy.orm import selectinload
 from app.core.database import get_db
 from app.models.recipe import Recipe
 from app.models.recipe_ingredient import RecipeIngredient
-from app.schemas.recipe import RecipeListOut, RecipeOut, RecipeIngredientOut
+from app.models.recipe_step import RecipeStep
+from app.models.recipe_step_ingredient import RecipeStepIngredient
+from app.schemas.recipe import (
+    RecipeListOut,
+    RecipeOut,
+    RecipeIngredientOut,
+    RecipeStepOut,
+    StepIngredientOut,
+)
 
 router = APIRouter()
 
@@ -36,7 +44,10 @@ async def read_recipe(
         select(Recipe)
         .where(Recipe.id == recipe_id)
         .options(
-            selectinload(Recipe.ingredients).selectinload(RecipeIngredient.ingredient)
+            selectinload(Recipe.ingredients).selectinload(RecipeIngredient.ingredient),
+            selectinload(Recipe.steps).selectinload(RecipeStep.ingredients).selectinload(
+                RecipeStepIngredient.ingredient
+            ),
         )
     )
     recipe = result.scalars().first()
@@ -47,21 +58,45 @@ async def read_recipe(
         RecipeIngredientOut(
             ingredient_id=ri.ingredient_catalog_id,
             name=ri.ingredient.name,
+            amount_text=ri.amount_text,
+            note=ri.note,
             quantity=ri.quantity,
             unit=ri.ingredient.default_unit,
         )
         for ri in recipe.ingredients
+    ]
+    ingredients.sort(key=lambda item: item.name.lower())
+    steps = [
+        RecipeStepOut(
+            step_number=step.step_number,
+            text=step.text,
+            ingredients=[
+                StepIngredientOut(
+                    ingredient_id=si.ingredient_catalog_id,
+                    name=si.ingredient.name,
+                    amount_text=si.amount_text,
+                    note=si.note,
+                    unit=si.ingredient.default_unit,
+                )
+                for si in sorted(step.ingredients, key=lambda s: s.ingredient.name.lower())
+            ],
+        )
+        for step in recipe.steps
     ]
 
     return RecipeOut(
         id=recipe.id,
         name=recipe.name,
         image_url=recipe.image_url,
-        instructions=recipe.instructions,
         servings=recipe.servings,
         prep_time_minutes=recipe.prep_time_minutes,
         cook_time_minutes=recipe.cook_time_minutes,
         difficulty=recipe.difficulty,
         is_featured=recipe.is_featured,
+        calories_kcal=recipe.calories_kcal,
+        carbs_g=recipe.carbs_g,
+        protein_g=recipe.protein_g,
+        fat_g=recipe.fat_g,
         ingredients=ingredients,
+        steps=steps,
     )
