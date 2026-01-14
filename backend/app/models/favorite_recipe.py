@@ -3,7 +3,6 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
 
-
 class FavoriteRecipe(Base):
     __tablename__ = "favorite_recipes"
     __table_args__ = (
@@ -15,5 +14,6 @@ class FavoriteRecipe(Base):
     recipe_id = Column(Integer, ForeignKey("recipes.id", ondelete="CASCADE"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    owner = relationship("User")
+    # User modelindeki "favorites_recipes" ile eşleşti
+    owner = relationship("User", back_populates="favorites_recipes")
     recipe = relationship("Recipe")

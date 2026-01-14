@@ -6,33 +6,34 @@ from typing import Optional
 class UserBase(BaseModel):
     email: EmailStr
 
-# Kayıt olurken istenecek veriler (Şifre şart!)
+# Kayıt olurken istenecek veriler
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
-    # Yeni eklenenler:
+    full_name: Optional[str] = None
     height: Optional[int] = None
     weight: Optional[int] = None
     activity_level: Optional[float] = None
     goal: Optional[str] = None
     birth_date: Optional[datetime] = None
 
-# Kullanıcıya geri döndüreceğimiz veriler (Şifreyi gizliyoruz!)
+# Kullanıcıya geri döndüreceğimiz veriler (Response)
 class UserOut(BaseModel):
     id: int
     email: EmailStr
     is_active: bool
-    # Yeni eklenenler:
+    full_name: Optional[str] = None
+    
+    # Profil Detayları
     height: Optional[int] = None
     weight: Optional[int] = None
+    activity_level: Optional[float] = None # EKLENDİ
+    goal: Optional[str] = None           # EKLENDİ
+    birth_date: Optional[datetime] = None # EKLENDİ
 
-    # ORM nesnesini (SQLAlchemy modelini) Pydantic modeline çevirmek için gerekli ayar
     model_config = ConfigDict(from_attributes=True)
 
-class Config:
-        from_attributes = True
-
-# Login için sadece email ve şifre yeterli
+# Login için şema
 class UserLogin(BaseModel):
     email: EmailStr
     password: str

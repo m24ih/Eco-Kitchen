@@ -1,37 +1,36 @@
-import 'package:eco_kitchen/screens/birth_day.dart';
-import 'package:eco_kitchen/screens/goal.dart';
-import 'package:eco_kitchen/screens/register_screen.dart';
-import 'package:eco_kitchen/screens/sport.dart';
-import 'package:eco_kitchen/screens/tall.dart';
-import 'package:eco_kitchen/screens/verification.dart';
-import 'package:eco_kitchen/screens/weight.dart';
 import 'package:flutter/material.dart';
-import 'package:eco_kitchen/screens/home.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // <-- 1. ÖNEMLİ: Riverpod paketi eklendi
 import 'package:eco_kitchen/screens/splash_screen.dart';
-import 'screens/onboarding1.dart';
 
 // Renk kodunu tanımlayalım
 const Color primaryGreen = Color(0xFF9DB67B);
 
 void main() {
-  // Uygulamayı başlatır ve MyApp widget'ını çalıştırır
-  runApp(MyApp());
+  runApp(
+    // 2. ÖNEMLİ: ProviderScope, uygulamanın en tepesine sarıldı.
+    // Bu olmadan "Bad state: No ProviderScope found" hatası alırsın.
+    const ProviderScope(
+      child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       // Hata ayıklama bandını kapatır
       debugShowCheckedModeBanner: false,
+      title: 'Eco Kitchen',
 
       // Uygulamanın temel temasını ayarlıyoruz
       theme: ThemeData(
         // Font Ayarı: Montserrat'ı tüm uygulamada varsayılan font yapmak için.
-        // **NOT:** pubspec.yaml dosyanıza fontu eklediğinizden emin olun!
         fontFamily: 'Montserrat',
 
-        // Uygulamanın birincil rengi (bu renk, bazı widget'lar için varsayılan olarak kullanılır)
+        // Uygulamanın birincil rengi
         primaryColor: primaryGreen,
 
         // Scaffold'ların (sayfaların) varsayılan arka plan rengi
@@ -42,9 +41,18 @@ class MyApp extends StatelessWidget {
           primary: primaryGreen,
           secondary: primaryGreen, // Genellikle vurgu rengi
         ),
+
+        // Buton stilleri vb. global ayarlar buraya eklenebilir
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: primaryGreen,
+            foregroundColor: Colors.white,
+          ),
+        ),
       ),
 
-      // Uygulamanın ilk açılacak sayfasını belirliyoruz.
+      // Uygulamanın ilk açılacak sayfası: Splash Screen
+      // Buradan sonra Onboarding veya Home'a kendi yönlenir.
       home: SplashScreen(),
     );
   }

@@ -1,26 +1,36 @@
+import 'package:eco_kitchen/backend/fastapi.dart'; // API Servisi
+import 'package:eco_kitchen/core/services/api_service.dart'; // Dio Servisi
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // Riverpod
 import 'package:eco_kitchen/screens/home.dart';
 import 'package:eco_kitchen/screens/register_screen.dart';
 
-class VerificationScreen extends StatefulWidget {
+// ConsumerStatefulWidget kullanıyoruz çünkü API çağrısı yapacağız
+class VerificationScreen extends ConsumerStatefulWidget {
   final String email;
+  // Şifreyi de alıyoruz ki doğrulama sonrası otomatik giriş yapabilelim
+  final String? password;
 
-  const VerificationScreen({Key? key, required this.email}) : super(key: key);
+  const VerificationScreen({
+    Key? key,
+    required this.email,
+    this.password
+  }) : super(key: key);
 
   @override
   _VerificationScreenState createState() => _VerificationScreenState();
 }
 
-class _VerificationScreenState extends State<VerificationScreen> {
+class _VerificationScreenState extends ConsumerState<VerificationScreen> {
   final List<TextEditingController> _controllers = List.generate(
     4,
-    (index) => TextEditingController(),
+        (index) => TextEditingController(),
   );
   final List<FocusNode> _focusNodes = List.generate(
     4,
-    (index) => FocusNode(),
+        (index) => FocusNode(),
   );
   bool _isLoading = false;
 
@@ -60,6 +70,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
   }
 
   Future<void> _verifyCode() async {
+    // Şimdilik herhangi bir kod girilmesine izin veriyoruz (Backend OTP yok)
     if (!_isCodeComplete) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Please enter the 4-digit code")),
@@ -69,19 +80,37 @@ class _VerificationScreenState extends State<VerificationScreen> {
 
     setState(() => _isLoading = true);
 
-    // TODO: Backend verification API call
-    // Simulating API call delay
-    await Future.delayed(Duration(seconds: 1));
+    try {
+      // Backend'de doğrulama endpoint'i olmadığı için
+      // 1 saniye bekleyip, eğer elimizde şifre varsa direkt giriş yapıyoruz.
+      await Future.delayed(Duration(seconds: 1));
 
-    if (mounted) {
-      setState(() => _isLoading = false);
+      if (widget.password != null) {
+        // Otomatik Giriş Yap
+        final dio = ref.read(apiServiceProvider);
+        final api = FastAPI(dio);
 
-      // Navigate to Home on success
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => HomeScreen()),
-        (route) => false,
-      );
+        await api.login(widget.email, widget.password!);
+      }
+
+      if (mounted) {
+        // Başarılı -> Ana Sayfaya
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => HomeScreen()),
+              (route) => false,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Bir hata oluştu, lütfen giriş yapın.")),
+        );
+        // Hata olsa bile giriş sayfasına yönlendir
+        Navigator.pop(context);
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -183,12 +212,12 @@ class _VerificationScreenState extends State<VerificationScreen> {
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   borderSide:
-                                      BorderSide(color: Colors.grey[300]!),
+                                  BorderSide(color: Colors.grey[300]!),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   borderSide:
-                                      BorderSide(color: Colors.grey[300]!),
+                                  BorderSide(color: Colors.grey[300]!),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -244,7 +273,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Color(0xFF9DB67B),
                       disabledBackgroundColor:
-                          Color(0xFF9DB67B).withOpacity(0.6),
+                      Color(0xFF9DB67B).withOpacity(0.6),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(28),
                       ),
@@ -252,21 +281,21 @@ class _VerificationScreenState extends State<VerificationScreen> {
                     ),
                     child: _isLoading
                         ? SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
                         : Text(
-                            "Continue",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                      "Continue",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ),
               ),

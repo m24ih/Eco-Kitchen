@@ -1,10 +1,13 @@
-import 'package:dio/dio.dart';
-import 'package:eco_kitchen/core/services/api_service.dart';
-import 'package:eco_kitchen/screens/verification.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:eco_kitchen/core/providers/onboarding_provider.dart';
+import 'package:eco_kitchen/core/services/api_service.dart';
+import 'package:eco_kitchen/backend/fastapi.dart';
+import 'package:eco_kitchen/screens/verification.dart';
+
+// Renk Tanımları (Eksik olan secondaryGreen eklendi)
+const Color primaryGreen = Color(0xFF9DB67B);
+const Color secondaryGreen = Color(0xFFE4EEE1);
 
 class RegisterScreen extends ConsumerStatefulWidget {
   @override
@@ -18,7 +21,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
 
-  // Password validation states
+  // Şifre kuralları
   bool get _hasMinLength => _passwordController.text.length >= 8;
   bool get _hasNumber => _passwordController.text.contains(RegExp(r'[0-9]'));
   bool get _hasLetter => _passwordController.text.contains(RegExp(r'[a-zA-Z]'));
@@ -33,54 +36,43 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     if (!_hasMinLength || !_hasNumber || !_hasLetter) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("It does not meet the password requirements.")),
+        SnackBar(content: Text("Please meet all password requirements")),
       );
       return;
     }
 
     setState(() => _isLoading = true);
 
-    // API çağrısı geçici olarak devre dışı - Backend entegrasyonu için
-    // final onboardingData = ref.read(onboardingProvider);
-    // final dio = ref.read(apiServiceProvider);
+    try {
+      final dio = ref.read(apiServiceProvider);
+      final api = FastAPI(dio);
 
-    // Geçici: Doğrudan verification ekranına git
-    await Future.delayed(Duration(milliseconds: 500)); // Simüle loading
-
-    if (mounted) {
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content:
-              Text("Registration successful! Enter the verification code."),
-          backgroundColor: Color(0xFF9DB67B),
-        ),
+      await api.register(
+        _emailController.text.trim(),
+        _passwordController.text,
+        _nameController.text.trim(),
       );
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => VerificationScreen(
-            email: _emailController.text.trim(),
+
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => VerificationScreen(
+              email: _emailController.text.trim(),
+              password: _passwordController.text,
+            ),
           ),
-        ),
-      );
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _passwordController.addListener(() {
-      setState(() {});
-    });
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
   }
 
   @override
@@ -101,252 +93,104 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(height: 8),
-
-              // Title
               Text(
-                "Sign Up",
+                "Sign up",
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
-              SizedBox(height: 8),
-              Text(
-                "Create account",
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey[600],
+                  color: Colors.black87,
                 ),
               ),
               SizedBox(height: 32),
 
-              // Name Field
-              Text(
-                "Name",
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black87,
-                ),
-              ),
+              // Name Input
+              Text("Name", style: TextStyle(fontWeight: FontWeight.w600)),
               SizedBox(height: 8),
-              TextField(
-                controller: _nameController,
-                decoration: InputDecoration(
-                  hintText: "Enter name",
-                  hintStyle: TextStyle(color: Colors.grey[400]),
-                  filled: true,
-                  fillColor: Colors.grey[50],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey[300]!),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey[300]!),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Color(0xFF9DB67B), width: 2),
-                  ),
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                ),
-              ),
-              SizedBox(height: 20),
+              _buildTextField(controller: _nameController, hint: "Your name"),
 
-              // Email Field
-              Text(
-                "Email",
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black87,
-                ),
-              ),
-              SizedBox(height: 8),
-              TextField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                  hintText: "enter_mail@email.com",
-                  hintStyle: TextStyle(color: Colors.grey[400]),
-                  filled: true,
-                  fillColor: Colors.grey[50],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey[300]!),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey[300]!),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Color(0xFF9DB67B), width: 2),
-                  ),
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                ),
-              ),
-              SizedBox(height: 20),
+              SizedBox(height: 16),
 
-              // Password Field
-              Text(
-                "Password",
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black87,
-                ),
-              ),
+              // Email Input
+              Text("Email", style: TextStyle(fontWeight: FontWeight.w600)),
               SizedBox(height: 8),
-              TextField(
+              _buildTextField(controller: _emailController, hint: "example@email.com"),
+
+              SizedBox(height: 16),
+
+              // Password Input
+              Text("Password", style: TextStyle(fontWeight: FontWeight.w600)),
+              SizedBox(height: 8),
+              _buildTextField(
                 controller: _passwordController,
-                obscureText: _obscurePassword,
-                decoration: InputDecoration(
-                  hintText: "••••••",
-                  hintStyle: TextStyle(color: Colors.grey[400]),
-                  filled: true,
-                  fillColor: Colors.grey[50],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey[300]!),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey[300]!),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Color(0xFF9DB67B), width: 2),
-                  ),
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePassword
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
-                      color: Colors.grey[500],
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscurePassword = !_obscurePassword;
-                      });
-                    },
-                  ),
-                ),
+                hint: "********",
+                isPassword: true,
+                onChanged: (_) => setState(() {}),
               ),
+
               SizedBox(height: 16),
 
               // Password Requirements
-              _buildPasswordRequirement("Minimum 8 characters", _hasMinLength),
-              SizedBox(height: 8),
-              _buildPasswordRequirement("Atleast 1 number (1-9)", _hasNumber),
-              SizedBox(height: 8),
-              _buildPasswordRequirement(
-                  "Atleast lowercase or uppercase letters", _hasLetter),
+              _buildPasswordRequirement("Must be at least 8 characters", _hasMinLength),
+              _buildPasswordRequirement("Must contain one number", _hasNumber),
+              _buildPasswordRequirement("Must contain one letter", _hasLetter),
+
               SizedBox(height: 32),
 
-              // Register Button
+              // Sign Up Button
               SizedBox(
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _register,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF9DB67B),
-                    disabledBackgroundColor: Color(0xFF9DB67B).withOpacity(0.6),
+                    backgroundColor: primaryGreen,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(28),
                     ),
                     elevation: 0,
                   ),
                   child: _isLoading
-                      ? SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
+                      ? CircularProgressIndicator(color: Colors.white)
                       : Text(
-                          "Register",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                ),
-              ),
-              SizedBox(height: 24),
-
-              // Sign In Link
-              Center(
-                child: RichText(
-                  text: TextSpan(
-                    text: "Have an account? ",
+                    "Sign Up",
                     style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 14,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
                     ),
-                    children: [
-                      TextSpan(
-                        text: "Sign In",
-                        style: TextStyle(
-                          color: Color(0xFF9DB67B),
-                          fontWeight: FontWeight.w600,
-                        ),
-                        recognizer: TapGestureRecognizer()
-                          ..onTap = () {
-                            Navigator.pop(context);
-                          },
-                      ),
-                    ],
                   ),
                 ),
               ),
-              SizedBox(height: 40),
 
-              // Terms and Data Policy
+              SizedBox(height: 24),
+
+              // Terms & Login Link
               Center(
                 child: RichText(
                   textAlign: TextAlign.center,
                   text: TextSpan(
-                    text: "By clicking Register, you agree to our\n",
-                    style: TextStyle(
-                      color: Colors.grey[500],
-                      fontSize: 12,
-                    ),
+                    text: "By signing up, you agree to our ",
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
                     children: [
                       TextSpan(
                         text: "Terms",
-                        style: TextStyle(
-                          color: Color(0xFF9DB67B),
-                          fontWeight: FontWeight.w500,
-                        ),
-                        recognizer: TapGestureRecognizer()..onTap = () {},
+                        style: TextStyle(color: primaryGreen, fontWeight: FontWeight.w600),
                       ),
                       TextSpan(text: ", "),
                       TextSpan(
                         text: "Data Policy",
-                        style: TextStyle(
-                          color: Color(0xFF9DB67B),
-                          fontWeight: FontWeight.w500,
-                        ),
-                        recognizer: TapGestureRecognizer()..onTap = () {},
+                        style: TextStyle(color: primaryGreen, fontWeight: FontWeight.w600),
+                      ),
+                      TextSpan(text: " and "),
+                      TextSpan(
+                        text: "Cookies Policy",
+                        style: TextStyle(color: primaryGreen, fontWeight: FontWeight.w600),
                       ),
                       TextSpan(text: "."),
                     ],
                   ),
                 ),
               ),
-              SizedBox(height: 24),
             ],
           ),
         ),
@@ -354,23 +198,61 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     );
   }
 
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hint,
+    bool isPassword = false,
+    Function(String)? onChanged,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: secondaryGreen.withOpacity(0.3), // Artık hata vermeyecek
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: primaryGreen.withOpacity(0.3)),
+      ),
+      child: TextField(
+        controller: controller,
+        obscureText: isPassword ? _obscurePassword : false,
+        onChanged: onChanged,
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: TextStyle(color: Colors.grey[400]),
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          suffixIcon: isPassword
+              ? IconButton(
+            icon: Icon(
+              _obscurePassword ? Icons.visibility_off : Icons.visibility,
+              color: Colors.grey,
+            ),
+            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+          )
+              : null,
+        ),
+      ),
+    );
+  }
+
   Widget _buildPasswordRequirement(String text, bool isMet) {
-    return Row(
-      children: [
-        Icon(
-          isMet ? Icons.check : Icons.close,
-          size: 18,
-          color: isMet ? Color(0xFF9DB67B) : Colors.red[400],
-        ),
-        SizedBox(width: 8),
-        Text(
-          text,
-          style: TextStyle(
-            fontSize: 13,
-            color: Colors.grey[600],
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4.0),
+      child: Row(
+        children: [
+          Icon(
+            isMet ? Icons.check_circle : Icons.circle_outlined,
+            size: 16,
+            color: isMet ? primaryGreen : Colors.grey,
           ),
-        ),
-      ],
+          SizedBox(width: 8),
+          Text(
+            text,
+            style: TextStyle(
+              color: isMet ? Colors.black87 : Colors.grey,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

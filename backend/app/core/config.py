@@ -3,7 +3,6 @@ from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Projenin kök dizinini bul (app/core/config.py -> app/core -> app -> backend/)
-# __file__ şu anki dosya, .parent.parent.parent diyerek 3 üst klasöre (backend'e) çıkıyoruz.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 class Settings(BaseSettings):

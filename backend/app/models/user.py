@@ -7,12 +7,13 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
+    full_name = Column(String, nullable=True)
     email = Column(String, unique=True, index=True, nullable=False)
     password_hash = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
-    # Yeni Sütunlar
+    # Kişisel Bilgiler
     height = Column(Integer, nullable=True)
     weight = Column(Integer, nullable=True)
     activity_level = Column(Float, nullable=True)
@@ -20,11 +21,8 @@ class User(Base):
     birth_date = Column(DateTime(timezone=True), nullable=True)
     
     # İlişkiler
-    ingredients = relationship(
-        "InventoryItem",
-        viewonly=True,
-        overlaps="inventory_items"
-    )
-    inventory_items = relationship("InventoryItem", back_populates="owner")
-    shopping_list_items = relationship("ShoppingListItem", back_populates="owner")
-    favorites_recipes = relationship("FavoriteRecipe", cascade="all, delete-orphan")
+    # "ingredients" ilişkisi kaldırıldı, çünkü "inventory_items" ile aynı işi yapıyordu.
+    
+    inventory_items = relationship("InventoryItem", back_populates="owner", cascade="all, delete-orphan")
+    shopping_list_items = relationship("ShoppingListItem", back_populates="owner", cascade="all, delete-orphan")
+    favorites_recipes = relationship("FavoriteRecipe", back_populates="owner", cascade="all, delete-orphan")

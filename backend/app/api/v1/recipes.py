@@ -1,8 +1,9 @@
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
+from sqlalchemy import desc
 
 from app.core.database import get_db
 from app.models.recipe import Recipe
@@ -19,18 +20,28 @@ from app.schemas.recipe import (
 
 router = APIRouter()
 
-
 @router.get("/", response_model=List[RecipeListOut])
 async def list_recipes(
-    featured: bool | None = Query(default=None), # ARAMA SEKMESI ÖNE ÇIKAN YEMEKLERİ GÖSTERMEK İÇİN KULLANILACAK
-    limit: int = Query(default=20, ge=1, le=50), # KAÇ TANE ÖNE ÇIKAN YEMEK GÖSTERİLCEK
-    offset: int = Query(default=0, ge=0), # SAYFALAMA İÇİN KULLANILACAK
+    featured: bool | None = Query(default=None), 
+    limit: int = Query(default=20, ge=1, le=50), 
+    offset: int = Query(default=0, ge=0),
+    sort: str = Query(default="newest", regex="^(newest|oldest)$"), # Sıralama eklendi
     db: AsyncSession = Depends(get_db)
 ):
     query = select(Recipe)
+    
+    # Filtreleme
     if featured is not None:
         query = query.where(Recipe.is_featured == featured)
+    
+    # Sıralama
+    if sort == "newest":
+        query = query.order_by(desc(Recipe.created_at))
+    elif sort == "oldest":
+        query = query.order_by(Recipe.created_at)
+        
     query = query.limit(limit).offset(offset)
+    
     result = await db.execute(query)
     return result.scalars().all()
 
@@ -65,7 +76,9 @@ async def read_recipe(
         )
         for ri in recipe.ingredients
     ]
+    # Malzemeleri isme göre sırala
     ingredients.sort(key=lambda item: item.name.lower())
+    
     steps = [
         RecipeStepOut(
             step_number=step.step_number,
@@ -83,6 +96,8 @@ async def read_recipe(
         )
         for step in recipe.steps
     ]
+    # Adımları numarasına göre sırala
+    steps.sort(key=lambda x: x.step_number)
 
     return RecipeOut(
         id=recipe.id,

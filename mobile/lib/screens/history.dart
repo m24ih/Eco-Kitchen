@@ -1,22 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:animated_bottom_navigation_bar/animated_bottom_navigation_bar.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:eco_kitchen/screens/home.dart';
 import 'package:eco_kitchen/screens/favorites.dart';
 import 'package:eco_kitchen/screens/search_recipe.dart';
 import 'package:eco_kitchen/screens/ai_chef.dart';
 import 'package:eco_kitchen/screens/recipe.dart';
+import 'package:eco_kitchen/screens/account.dart'; // DÜZELTİLDİ
 
 const Color primaryGreen = Color(0xFF9DB67B);
 const Color secondaryGreen = Color(0xFFE4EEE1);
-const Color lightGreen = Color(0xFFF5F8F3);
 
-class HistoryScreen extends StatefulWidget {
+class HistoryScreen extends ConsumerStatefulWidget {
   @override
-  _HistoryScreenState createState() => _HistoryScreenState();
+  ConsumerState<HistoryScreen> createState() => _HistoryScreenState();
 }
 
-class _HistoryScreenState extends State<HistoryScreen> {
-  int _bottomNavIndex = 0;
+class _HistoryScreenState extends ConsumerState<HistoryScreen> {
+  int _bottomNavIndex = -1;
 
   final iconList = <IconData>[
     Icons.home_outlined,
@@ -25,16 +26,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
     Icons.person_outline,
   ];
 
-  // Sample history data
   List<Map<String, String>> _historyItems = [
-    {
-      'title': 'Easy homemade beef burger',
-      'image': 'assets/images/meal.png',
-    },
-    {
-      'title': 'Easy homemade beef burger',
-      'image': 'assets/images/meal.png',
-    },
+    {'title': 'Easy homemade beef burger', 'image': 'assets/images/meal.png'},
+    {'title': 'Easy homemade beef burger', 'image': 'assets/images/meal.png'},
   ];
 
   void _deleteItem(int index) {
@@ -62,11 +56,38 @@ class _HistoryScreenState extends State<HistoryScreen> {
           color: Colors.white.withOpacity(0.5),
           shape: BoxShape.circle,
         ),
-        child: Image.asset(
-          'assets/images/logo.png',
-          fit: BoxFit.contain,
-        ),
+        child: Image.asset('assets/images/logo.png', fit: BoxFit.contain),
       ),
+    );
+  }
+
+  // --- NAVİGASYON DÜZELTMESİ ---
+  void _onNavigationTap(int index) {
+    setState(() {
+      _bottomNavIndex = index;
+    });
+
+    Widget page;
+    switch (index) {
+      case 0:
+        page = HomeScreen();
+        break;
+      case 1:
+        page = SearchRecipeScreen();
+        break;
+      case 2:
+        page = FavoritesScreen();
+        break;
+      case 3:
+        page = AccountScreen(); // DÜZELTİLDİ
+        break;
+      default:
+        return;
+    }
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => page),
     );
   }
 
@@ -88,53 +109,24 @@ class _HistoryScreenState extends State<HistoryScreen> {
         inactiveColor: primaryGreen.withOpacity(0.6),
         splashSpeedInMilliseconds: 300,
         notchMargin: 8,
-        onTap: (index) {
-          if (index == 0) {
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => HomeScreen()),
-              (route) => false,
-            );
-          } else if (index == 1) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => SearchRecipeScreen()),
-            );
-          } else if (index == 2) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => FavoritesScreen()),
-            );
-          } else {
-            setState(() => _bottomNavIndex = index);
-          }
-        },
+        onTap: _onNavigationTap,
       ),
       body: SafeArea(
         child: Column(
           children: [
-            // Header
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: Row(
                 children: [
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
-                    child: Icon(
-                      Icons.arrow_back,
-                      color: Colors.black87,
-                      size: 24,
-                    ),
+                    child: Icon(Icons.arrow_back, color: Colors.black87, size: 24),
                   ),
                   Expanded(
                     child: Center(
                       child: Text(
                         'History',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.black87),
                       ),
                     ),
                   ),
@@ -142,10 +134,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 ],
               ),
             ),
-
             SizedBox(height: 16),
-
-            // History list
             Expanded(
               child: ListView.builder(
                 padding: EdgeInsets.symmetric(horizontal: 16),
@@ -155,7 +144,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 },
               ),
             ),
-
             SizedBox(height: 80),
           ],
         ),
@@ -175,59 +163,31 @@ class _HistoryScreenState extends State<HistoryScreen> {
         padding: const EdgeInsets.all(12),
         child: Row(
           children: [
-            // Recipe image
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: Image.asset(
-                item['image']!,
-                width: 80,
-                height: 80,
-                fit: BoxFit.cover,
-              ),
+              child: Image.asset(item['image']!, width: 80, height: 80, fit: BoxFit.cover),
             ),
             SizedBox(width: 16),
-            // Title
             Expanded(
-              child: Text(
-                item['title']!,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
+              child: Text(item['title']!, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
             ),
-            // Action buttons
             Column(
               children: [
-                // Delete button
                 GestureDetector(
                   onTap: () => _deleteItem(index),
-                  child: Icon(
-                    Icons.delete_outline,
-                    color: primaryGreen,
-                    size: 24,
-                  ),
+                  child: Icon(Icons.delete_outline, color: primaryGreen, size: 24),
                 ),
                 SizedBox(height: 20),
-                // Arrow button
                 GestureDetector(
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => RecipeScreen(
-                          title: item['title']!,
-                          image: item['image']!,
-                        ),
+                        builder: (context) => RecipeScreen(title: item['title']!, image: item['image']!),
                       ),
                     );
                   },
-                  child: Icon(
-                    Icons.arrow_forward,
-                    color: primaryGreen,
-                    size: 24,
-                  ),
+                  child: Icon(Icons.arrow_forward, color: primaryGreen, size: 24),
                 ),
               ],
             ),

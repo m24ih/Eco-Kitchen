@@ -1,5 +1,24 @@
 services:
-  # 1. PostgreSQL Veritabanı
+  # 1. Backend Uygulaması (YENİ EKLENDİ)
+  backend:
+    build: ./backend  # backend klasöründeki Dockerfile'ı kullanır
+    container_name: eco_kitchen_backend
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./backend:/app # Koddaki değişikliği anında algılaması için
+    ports:
+      - "8000:8000"
+    
+    env_file:
+      - ./backend/.env
+
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://melih:gizlisifre@db:5432/sustain_db
+      
+    depends_on:
+      - db # Veritabanı açılmadan backend açılmasın
+
+  # 2. PostgreSQL Veritabanı
   db:
     image: postgres:15-alpine
     container_name: eco_kitchen_db
@@ -13,7 +32,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  # 2. pgAdmin (Veritabanını görmek için arayüz)
+  # 3. pgAdmin (Veritabanı Arayüzü)
   pgadmin:
     image: dpage/pgadmin4
     container_name: eco_kitchen_pgadmin

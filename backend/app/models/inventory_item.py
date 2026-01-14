@@ -2,9 +2,10 @@ from sqlalchemy import Column, Integer, String, Float, ForeignKey
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
-
 class InventoryItem(Base):
-    __tablename__ = "ingredients"
+    # Tablo adını düzelttik: Artık "ingredients" değil "inventory_items"
+    # Bu sayede Katalog tablosuyla (ingredient_catalog) karışmayacak.
+    __tablename__ = "inventory_items"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True, nullable=False)

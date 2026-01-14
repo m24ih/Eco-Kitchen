@@ -1,37 +1,72 @@
 import 'package:flutter/material.dart';
-// Kütüphaneyi import ediyoruz
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:animated_bottom_navigation_bar/animated_bottom_navigation_bar.dart';
+import 'package:eco_kitchen/core/services/api_service.dart'; // API Servisi
+import 'package:eco_kitchen/backend/fastapi.dart'; // FastAPI
 import 'package:eco_kitchen/screens/leftover.dart';
 import 'package:eco_kitchen/screens/waste.dart';
 import 'package:eco_kitchen/screens/shopping_list.dart';
 import 'package:eco_kitchen/screens/favorites.dart';
 import 'package:eco_kitchen/screens/search_recipe.dart';
 import 'package:eco_kitchen/screens/ai_chef.dart';
-import 'package:eco_kitchen/screens/profile.dart';
+import 'package:eco_kitchen/screens/profile.dart'; // Menü Ekranı
 
 // Ana renk kodlarımız
 const Color primaryGreen = Color(0xFF9DB67B);
 const Color secondaryGreen = Color(0xFFE4EEE1);
-const Color fabColor = Color(0xFF9DB67B); // FAB için de ana rengi kullanalım
+const Color fabColor = Color(0xFF9DB67B);
 
-class HomeScreen extends StatefulWidget {
-  // StatefulWidget yapısını kullanıyoruz, çünkü Bottom Nav durumunu tutmamız gerekecek
+class HomeScreen extends ConsumerStatefulWidget {
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  int _bottomNavIndex = 0; // Şu anda seçili olan sekme
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  int _bottomNavIndex = 0; // Şu anda seçili olan sekme (Home)
+  String _userName = "User"; // Varsayılan isim
 
-  // Navigasyon ikonları (Tasarımınızdaki sıra ile)
   final iconList = <IconData>[
-    Icons.home, // Ev
-    Icons.search, // Ara
-    Icons.favorite_border, // Favoriler
-    Icons.person_outline, // Profil
+    Icons.home,
+    Icons.search,
+    Icons.favorite_border,
+    Icons.person_outline,
   ];
 
-  // Ortadaki Özel Floating Action Button (FAB)
+  @override
+  void initState() {
+    super.initState();
+    _loadUserName(); // Uygulama açılınca ismi çek
+  }
+
+  // Kullanıcı ismini Backend'den çekme fonksiyonu
+  Future<void> _loadUserName() async {
+    try {
+      final dio = ref.read(apiServiceProvider);
+      final api = FastAPI(dio);
+
+      // Kullanıcı bilgilerini iste
+      final userData = await api.getUserProfile();
+
+      if (mounted) {
+        setState(() {
+          // 1. Önce "full_name" var mı bak
+          if (userData['full_name'] != null && userData['full_name'].toString().isNotEmpty) {
+            _userName = userData['full_name'];
+          }
+          // 2. Yoksa email'in baş kısmını al (örn: melih@gmail.com -> Melih)
+          else if (userData['email'] != null) {
+            String email = userData['email'].toString();
+            String rawName = email.split('@')[0];
+            _userName = rawName[0].toUpperCase() + rawName.substring(1);
+          }
+        });
+      }
+    } catch (e) {
+      print("Home User Load Error: $e");
+      // Hata olursa varsayılan "User" kalır
+    }
+  }
+
   Widget _buildFAB() {
     return FloatingActionButton(
       onPressed: () {
@@ -61,11 +96,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Fonksiyonel Liste Butonları (Yardımcı Widget'lar aynı kalıyor)
   Widget _buildRowButton(
       {required IconData icon,
-      required String text,
-      required VoidCallback onTap}) {
+        required String text,
+        required VoidCallback onTap}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Row(
@@ -97,9 +131,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Hoş Geldiniz Kartı (Yardımcı Widget'lar aynı kalıyor)
   Widget _buildHeaderCard(BuildContext context) {
-    // ... (Önceki kodunuzdaki _buildHeaderCard içeriği)
     return Container(
       height: 120,
       padding: const EdgeInsets.all(20.0),
@@ -110,8 +142,9 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: <Widget>[
-          const Text(
-            'Welcome, Sevval!',
+          // DİNAMİK İSİM BURAYA GELİYOR
+          Text(
+            'Welcome, $_userName!',
             style: TextStyle(
               fontFamily: 'Montserrat',
               fontSize: 24.0,
@@ -140,6 +173,34 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _onNavigationTap(int index) {
+    setState(() {
+      _bottomNavIndex = index;
+    });
+
+    Widget page;
+    switch (index) {
+      case 0:
+        return; // Zaten Home'dayız
+      case 1:
+        page = SearchRecipeScreen();
+        break;
+      case 2:
+        page = FavoritesScreen();
+        break;
+      case 3:
+        page = ProfileScreen(); // Menüye gider
+        break;
+      default:
+        return;
+    }
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => page),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -148,51 +209,22 @@ class _HomeScreenState extends State<HomeScreen> {
         elevation: 0,
         automaticallyImplyLeading: false,
       ),
-
-      // 1. FAB
       floatingActionButton: _buildFAB(),
-
-      // 2. FAB Konumu (Kütüphane ile mükemmel çalışır)
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-
-      // 3. AnimatedBottomNavigationBar
       bottomNavigationBar: AnimatedBottomNavigationBar(
         icons: iconList,
         activeIndex: _bottomNavIndex,
-        gapLocation: GapLocation.center, // Çentik ortada
-        notchSmoothness: NotchSmoothness.smoothEdge, // Yumuşak kenarlı çentik
-        leftCornerRadius: 25, // Sol köşe yuvarlak
-        rightCornerRadius: 25, // Sağ köşe yuvarlak
-        backgroundColor: secondaryGreen, // Açık yeşil arka plan
-        activeColor: primaryGreen, // Aktif ikon rengi
-        inactiveColor: primaryGreen.withOpacity(0.6), // Pasif ikon rengi
+        gapLocation: GapLocation.center,
+        notchSmoothness: NotchSmoothness.smoothEdge,
+        leftCornerRadius: 25,
+        rightCornerRadius: 25,
+        backgroundColor: secondaryGreen,
+        activeColor: primaryGreen,
+        inactiveColor: primaryGreen.withOpacity(0.6),
         splashSpeedInMilliseconds: 300,
-        notchMargin: 8, // FAB ile çentik arasındaki boşluk
-        onTap: (index) {
-          if (index == 1) {
-            // Search icon tapped
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => SearchRecipeScreen()),
-            );
-          } else if (index == 2) {
-            // Favorites icon tapped
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => FavoritesScreen()),
-            );
-          } else if (index == 3) {
-            // Profile icon tapped
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => ProfileScreen()),
-            );
-          } else {
-            setState(() => _bottomNavIndex = index);
-          }
-        },
+        notchMargin: 8,
+        onTap: _onNavigationTap,
       ),
-
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),

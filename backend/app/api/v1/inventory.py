@@ -20,28 +20,39 @@ async def create_inventory_item(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    # İsim normalizasyonu (boşlukları sil, küçük harfe çevir)
     normalized_name = item.name.strip().lower()
     if not normalized_name:
-        raise HTTPException(status_code=400, detail="Item not found in catalog. Please choose from catalog.")
+        raise HTTPException(status_code=400, detail="Lütfen geçerli bir malzeme adı girin.")
 
+    # Katalog kontrolü (Bu ürün sistemde tanımlı mı?)
     result = await db.execute(
         select(IngredientCatalog).where(
             func.lower(IngredientCatalog.name) == normalized_name
         )
     )
     catalog_item = result.scalars().first()
+    
+    # Geliştirme Notu: Eğer katalog boşsa veya çok katıysa burası kullanıcıyı üzebilir.
+    # Şimdilik katalogda olması zorunlu.
     if not catalog_item:
-        raise HTTPException(status_code=400, detail="Item not found in catalog. Please choose from catalog.")
+        raise HTTPException(
+            status_code=400, 
+            detail=f"'{item.name}' kataloğumuzda bulunamadı. Lütfen listeden seçin."
+        )
 
+    # Birim kontrolü
     unit = item.unit.strip() if item.unit else ""
     if not unit:
         unit = catalog_item.default_unit
     elif unit != catalog_item.default_unit:
+        # Basitlik adına şimdilik sadece katalogdaki varsayılan birimi kabul ediyoruz
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid unit for this item. Expected: {catalog_item.default_unit}"
+            detail=f"Birim uyuşmazlığı. Beklenen: {catalog_item.default_unit}"
         )
 
+    # Kullanıcının envanterinde bu ürün zaten var mı?
     result = await db.execute(
         select(InventoryItem).where(
             InventoryItem.owner_id == current_user.id,
@@ -50,14 +61,17 @@ async def create_inventory_item(
         )
     )
     existing_item = result.scalars().first()
+    
+    # Varsa miktarını artır
     if existing_item:
         existing_item.quantity += item.quantity
         await db.commit()
         await db.refresh(existing_item)
         return existing_item
 
+    # Yoksa yeni oluştur
     new_item = InventoryItem(
-        name=normalized_name,
+        name=normalized_name, # Küçük harfle kaydet
         quantity=item.quantity,
         unit=unit,
         owner_id=current_user.id
@@ -67,7 +81,7 @@ async def create_inventory_item(
     await db.refresh(new_item)
     return new_item
 
-# 2. Stok Listeleme (Sadece Benimkiler)
+# 2. Stok Listeleme
 @router.get("/", response_model=List[InventoryItemOut])
 async def read_inventory_items(
     db: AsyncSession = Depends(get_db),

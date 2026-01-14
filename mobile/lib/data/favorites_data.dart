@@ -1,36 +1,32 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
-// Shared favorites data that can be accessed by multiple screens
 class FavoritesData extends ChangeNotifier {
+  // Singleton yapısı
   static final FavoritesData _instance = FavoritesData._internal();
   factory FavoritesData() => _instance;
   FavoritesData._internal();
 
+  // Favori Listesi
   final List<Map<String, dynamic>> _favorites = [];
 
   List<Map<String, dynamic>> get favorites => _favorites;
 
-  void addFavorite(Map<String, dynamic> recipe) {
-    // Check if already exists
-    bool exists = _favorites.any((item) => item['title'] == recipe['title']);
-    if (!exists) {
-      _favorites.add({...recipe, 'isFavorite': true});
-      notifyListeners();
+  // Favori Ekle/Çıkar
+  void toggleFavorite(Map<String, dynamic> recipe) {
+    // Başlığa göre kontrol ediyoruz
+    final index = _favorites.indexWhere((item) => item['title'] == recipe['title']);
+
+    if (index >= 0) {
+      _favorites.removeAt(index);
+    } else {
+      _favorites.add(recipe);
     }
+    notifyListeners(); // Arayüzü güncelle!
   }
 
   void removeFavorite(String title) {
     _favorites.removeWhere((item) => item['title'] == title);
-    notifyListeners();
-  }
-
-  void toggleFavorite(Map<String, dynamic> recipe) {
-    bool exists = _favorites.any((item) => item['title'] == recipe['title']);
-    if (exists) {
-      removeFavorite(recipe['title']);
-    } else {
-      addFavorite(recipe);
-    }
+    notifyListeners(); // Arayüzü güncelle!
   }
 
   bool isFavorite(String title) {
@@ -38,5 +34,5 @@ class FavoritesData extends ChangeNotifier {
   }
 }
 
-// Global instance
+// Geriye dönük uyumluluk için global değişken (Provider varken buna çok gerek yok ama kalsın)
 final favoritesData = FavoritesData();

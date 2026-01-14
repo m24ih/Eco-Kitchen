@@ -3,7 +3,9 @@ from sqlalchemy.orm import DeclarativeBase
 from app.core.config import settings
 
 # Veritabanı Motorunu Oluştur (Async)
-engine = create_async_engine(settings.DATABASE_URL, echo=True) # echo=True: SQL sorgularını terminale yazar
+# echo=True geliştirme aşamasında SQL sorgularını terminalde görmek için faydalıdır.
+# Prodüksiyonda False yapılması önerilir.
+engine = create_async_engine(settings.DATABASE_URL, echo=True)
 
 # Oturum Oluşturucu (Session Factory)
 SessionLocal = async_sessionmaker(autocommit=False, autoflush=False, bind=engine, class_=AsyncSession)

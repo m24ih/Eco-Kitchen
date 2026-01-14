@@ -1,18 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:animated_bottom_navigation_bar/animated_bottom_navigation_bar.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'package:eco_kitchen/screens/home.dart';
 import 'package:eco_kitchen/screens/ai_chef.dart';
+import 'package:eco_kitchen/screens/search_recipe.dart';
+import 'package:eco_kitchen/screens/favorites.dart';
+import 'package:eco_kitchen/screens/profile.dart';
+// Yeni Provider
+import 'package:eco_kitchen/providers/inventory_provider.dart';
 
 const Color primaryGreen = Color(0xFF9DB67B);
 const Color secondaryGreen = Color(0xFFE4EEE1);
 
-class LeftoverScreen extends StatefulWidget {
+class LeftoverScreen extends ConsumerStatefulWidget {
   @override
   _LeftoverScreenState createState() => _LeftoverScreenState();
 }
 
-class _LeftoverScreenState extends State<LeftoverScreen> {
-  int _bottomNavIndex = 0;
+class _LeftoverScreenState extends ConsumerState<LeftoverScreen> {
+  int _bottomNavIndex = -1;
 
   final iconList = <IconData>[
     Icons.home,
@@ -21,45 +28,66 @@ class _LeftoverScreenState extends State<LeftoverScreen> {
     Icons.person_outline,
   ];
 
-  // Sample ingredient data
-  final List<Map<String, String>> _ingredients = [
-    {'name': 'basmati rice', 'quantity': '½ cup'},
-    {'name': 'chicken or vegetable broth', 'quantity': '16 fl oz'},
-    {'name': 'cilantro', 'quantity': '½ small bunch'},
-    {'name': 'coconut milk', 'quantity': '½ (13.5 fl oz) can'},
-    {'name': 'garlic', 'quantity': '1 (1 inch) piece'},
-    {'name': 'ginger root', 'quantity': '16 fl oz'},
-    {'name': 'grape tomatoes', 'quantity': '1/2 pint'},
-    {'name': 'jalapeño pepper', 'quantity': '1'},
-    {'name': 'yellow onion', 'quantity': '1 medium'},
-    {'name': 'cinnamon, ground', 'quantity': '1'},
-  ];
-
+  // Ekleme Diyaloğu
   void _addIngredient() {
     final nameController = TextEditingController();
     final quantityController = TextEditingController();
+    String selectedUnit = 'piece'; // Varsayılan birim
 
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text('Add Ingredient'),
+        title: Text('Add Ingredient to Inventory'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // İsim
             TextField(
               controller: nameController,
               decoration: InputDecoration(
-                labelText: 'Ingredient name',
+                labelText: 'Ingredient Name (e.g. onion)',
                 border: OutlineInputBorder(),
+                hintText: 'Must match catalog (english for now)',
               ),
             ),
             SizedBox(height: 16),
-            TextField(
-              controller: quantityController,
-              decoration: InputDecoration(
-                labelText: 'Quantity',
-                border: OutlineInputBorder(),
-              ),
+
+            Row(
+              children: [
+                // Miktar (Sayı)
+                Expanded(
+                  flex: 2,
+                  child: TextField(
+                    controller: quantityController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'Amount',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+                SizedBox(width: 16),
+                // Birim Seçimi
+                Expanded(
+                  flex: 2,
+                  child: DropdownButtonFormField<String>(
+                    value: selectedUnit,
+                    decoration: InputDecoration(
+                      labelText: 'Unit',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: ['piece', 'kg', 'g', 'ml', 'l', 'clove', 'tbsp', 'tsp']
+                        .map((unit) => DropdownMenuItem(
+                      value: unit,
+                      child: Text(unit),
+                    ))
+                        .toList(),
+                    onChanged: (value) {
+                      selectedUnit = value!;
+                    },
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -69,29 +97,28 @@ class _LeftoverScreenState extends State<LeftoverScreen> {
             child: Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
-              if (nameController.text.isNotEmpty &&
-                  quantityController.text.isNotEmpty) {
-                setState(() {
-                  _ingredients.add({
-                    'name': nameController.text,
-                    'quantity': quantityController.text,
-                  });
-                });
-                Navigator.pop(dialogContext);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('${nameController.text} added!'),
-                    backgroundColor: primaryGreen,
-                  ),
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Please fill in all fields'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
+            onPressed: () async {
+              if (nameController.text.isNotEmpty && quantityController.text.isNotEmpty) {
+                try {
+                  final quantity = double.parse(quantityController.text.replaceAll(',', '.'));
+
+                  // Provider üzerinden ekle
+                  await ref.read(inventoryProvider.notifier).addItem(
+                    nameController.text,
+                    quantity,
+                    selectedUnit,
+                  );
+
+                  if (context.mounted) Navigator.pop(dialogContext);
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('${nameController.text} added!'), backgroundColor: primaryGreen),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+                  );
+                }
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: primaryGreen),
@@ -102,140 +129,91 @@ class _LeftoverScreenState extends State<LeftoverScreen> {
     );
   }
 
-  void _deleteIngredient(int index) {
-    final deletedItem = _ingredients[index]['name'];
+  void _onNavigationTap(int index) {
     setState(() {
-      _ingredients.removeAt(index);
+      _bottomNavIndex = index;
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$deletedItem removed!'),
-        backgroundColor: primaryGreen,
-      ),
-    );
-  }
 
-  Widget _buildFAB() {
-    return FloatingActionButton(
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => AiChefScreen()),
-        );
-      },
-      backgroundColor: primaryGreen,
-      shape: const CircleBorder(),
-      elevation: 4.0,
-      child: Container(
-        width: 50,
-        height: 50,
-        padding: EdgeInsets.all(2),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.5),
-          shape: BoxShape.circle,
-        ),
-        child: Image.asset(
-          'assets/images/logo.png',
-          fit: BoxFit.contain,
-        ),
-      ),
-    );
+    Widget page;
+    switch (index) {
+      case 0: page = HomeScreen(); break;
+      case 1: page = SearchRecipeScreen(); break;
+      case 2: page = FavoritesScreen(); break;
+      case 3: page = ProfileScreen(); break;
+      default: return;
+    }
+
+    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => page));
   }
 
   @override
   Widget build(BuildContext context) {
+    // Provider'ı dinle
+    final inventoryState = ref.watch(inventoryProvider);
+
     return Scaffold(
       backgroundColor: Colors.white,
-      floatingActionButton: _buildFAB(),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => AiChefScreen())),
+        backgroundColor: primaryGreen,
+        child: Container(width: 50, height: 50, padding: EdgeInsets.all(2), decoration: BoxDecoration(color: Colors.white.withOpacity(0.5), shape: BoxShape.circle), child: Image.asset('assets/images/logo.png', fit: BoxFit.contain)),
+      ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: AnimatedBottomNavigationBar(
         icons: iconList,
         activeIndex: _bottomNavIndex,
         gapLocation: GapLocation.center,
         notchSmoothness: NotchSmoothness.smoothEdge,
-        leftCornerRadius: 25,
-        rightCornerRadius: 25,
+        leftCornerRadius: 25, rightCornerRadius: 25,
         backgroundColor: secondaryGreen,
         activeColor: primaryGreen,
         inactiveColor: primaryGreen.withOpacity(0.6),
         splashSpeedInMilliseconds: 300,
         notchMargin: 8,
-        onTap: (index) {
-          if (index == 0) {
-            // Home icon tapped - navigate to HomeScreen
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => HomeScreen()),
-              (route) => false,
-            );
-          } else {
-            setState(() => _bottomNavIndex = index);
-          }
-        },
+        onTap: _onNavigationTap,
       ),
       body: SafeArea(
         child: Column(
           children: [
-            // Header with "What you have?" and + button
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
               child: Row(
                 children: [
-                  // "What you have?" pill button
                   Expanded(
                     child: Container(
                       height: 48,
-                      decoration: BoxDecoration(
-                        color: primaryGreen,
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                      child: Center(
-                        child: Text(
-                          'What you have ?',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
+                      decoration: BoxDecoration(color: primaryGreen, borderRadius: BorderRadius.circular(24)),
+                      child: Center(child: Text('Your Inventory', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600))),
                     ),
                   ),
                   SizedBox(width: 12),
-                  // Add button
                   GestureDetector(
                     onTap: _addIngredient,
-                    child: Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: primaryGreen,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.add,
-                        color: Colors.white,
-                        size: 28,
-                      ),
-                    ),
+                    child: Container(width: 48, height: 48, decoration: BoxDecoration(color: primaryGreen, shape: BoxShape.circle), child: Icon(Icons.add, color: Colors.white, size: 28)),
                   ),
                 ],
               ),
             ),
 
-            // Ingredient list
+            // LİSTE GÖRÜNÜMÜ (AsyncValue ile)
             Expanded(
-              child: ListView.builder(
-                padding: EdgeInsets.symmetric(horizontal: 24),
-                itemCount: _ingredients.length,
-                itemBuilder: (context, index) {
-                  final ingredient = _ingredients[index];
-                  return _buildIngredientItem(
-                    name: ingredient['name']!,
-                    quantity: ingredient['quantity']!,
-                    onDelete: () => _deleteIngredient(index),
-                  );
-                },
+              child: inventoryState.when(
+                data: (items) => items.isEmpty
+                    ? Center(child: Text("Your fridge is empty. Add items!", style: TextStyle(color: Colors.grey)))
+                    : ListView.builder(
+                  padding: EdgeInsets.symmetric(horizontal: 24),
+                  itemCount: items.length,
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    return _buildIngredientItem(
+                      id: item['id'],
+                      name: item['name'],
+                      quantity: "${item['quantity']} ${item['unit']}",
+                    );
+                  },
+                ),
+                loading: () => Center(child: CircularProgressIndicator(color: primaryGreen)),
+                error: (err, stack) => Center(child: Text("Failed to load inventory: $err")),
               ),
             ),
           ],
@@ -244,52 +222,22 @@ class _LeftoverScreenState extends State<LeftoverScreen> {
     );
   }
 
-  Widget _buildIngredientItem({
-    required String name,
-    required String quantity,
-    required VoidCallback onDelete,
-  }) {
+  Widget _buildIngredientItem({required int id, required String name, required String quantity}) {
     return Container(
       padding: EdgeInsets.symmetric(vertical: 16),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: Colors.grey[200]!,
-            width: 1,
-          ),
-        ),
-      ),
+      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Colors.grey[200]!, width: 1))),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Ingredient name
-          Expanded(
-            child: Text(
-              name,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-            ),
-          ),
-          // Quantity
-          Text(
-            quantity,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
-            ),
-          ),
+          Expanded(child: Text(name, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87))),
+          Text(quantity, style: TextStyle(fontSize: 14, color: Colors.grey[600])),
           SizedBox(width: 12),
-          // Delete button
           GestureDetector(
-            onTap: onDelete,
-            child: Icon(
-              Icons.delete_outline,
-              color: Colors.red[400],
-              size: 22,
-            ),
+            onTap: () {
+              // Silme işlemi
+              ref.read(inventoryProvider.notifier).deleteItem(id);
+            },
+            child: Icon(Icons.delete_outline, color: Colors.red[400], size: 22),
           ),
         ],
       ),

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart'; // 1. Riverpod ekle
-import 'package:eco_kitchen/core/providers/onboarding_provider.dart'; // 2. Provider'ı ekle
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:eco_kitchen/core/providers/onboarding_provider.dart';
 import 'package:eco_kitchen/screens/tall.dart';
+import 'package:eco_kitchen/screens/home.dart'; // Skip için Home eklendi
 
 // Ana renk kodlarımız
 const Color primaryGreen = Color(0xFF9DB67B);
@@ -14,14 +15,11 @@ class BirthDayScreen extends ConsumerStatefulWidget {
 }
 
 class _BirthDayScreenState extends ConsumerState<BirthDayScreen> {
-  // Varsayılan olarak bugünün tarihini alabiliriz.
   DateTime? _selectedDate;
 
-  // Kullanıcının yaşını hesaplamak için
   int _calculateAge(DateTime birthDate) {
     DateTime today = DateTime.now();
     int age = today.year - birthDate.year;
-    // Eğer doğum günü henüz geçmediyse, yaşı 1 azalt
     if (today.month < birthDate.month ||
         (today.month == birthDate.month && today.day < birthDate.day)) {
       age--;
@@ -29,21 +27,20 @@ class _BirthDayScreenState extends ConsumerState<BirthDayScreen> {
     return age;
   }
 
-  // Tarih seçiciyi açan fonksiyon
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate ?? DateTime(2000), // Başlangıç tarihi
-      firstDate: DateTime(1900), // Seçilebilecek en eski tarih
-      lastDate: DateTime.now(), // Seçilebilecek en yeni tarih (bugün)
+      initialDate: _selectedDate ?? DateTime(2000),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
       builder: (context, child) {
         return Theme(
           data: ThemeData.light().copyWith(
             colorScheme: ColorScheme.light(
-              primary: primaryGreen, // Başlık ve seçili gün rengi
+              primary: primaryGreen,
               onPrimary: Colors.white,
-              surface: Colors.white, // Takvim arka planı
-              onSurface: Colors.black, // Takvim metin rengi
+              surface: Colors.white,
+              onSurface: Colors.black,
             ),
           ),
           child: child!,
@@ -59,24 +56,26 @@ class _BirthDayScreenState extends ConsumerState<BirthDayScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Yaş hesaplaması, eğer tarih seçilmişse
     final int? age =
-        _selectedDate != null ? _calculateAge(_selectedDate!) : null;
+    _selectedDate != null ? _calculateAge(_selectedDate!) : null;
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        // Sol Geri Butonu
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        // Sağ Skip Butonu
         actions: <Widget>[
           TextButton(
             onPressed: () {
-              // TODO: Kayıt akışını atlama
+              // Skip'e basarsa direkt Home'a veya Register'a atabiliriz.
+              // Şimdilik verisiz devam etsin istiyorsak TallScreen'e atalım.
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => TallScreen()),
+              );
             },
             child: const Text(
               'Skip',
@@ -93,7 +92,6 @@ class _BirthDayScreenState extends ConsumerState<BirthDayScreen> {
           children: <Widget>[
             const SizedBox(height: 32.0),
 
-            // 1. Başlık Metni
             Row(
               children: [
                 const Text(
@@ -116,7 +114,6 @@ class _BirthDayScreenState extends ConsumerState<BirthDayScreen> {
             ),
             const SizedBox(height: 8.0),
 
-            // 2. Açıklama Metni
             const Text(
               'We will use this data to give you a better diet type for you',
               style: TextStyle(
@@ -125,7 +122,6 @@ class _BirthDayScreenState extends ConsumerState<BirthDayScreen> {
 
             const SizedBox(height: 48.0),
 
-            // 3. Büyük Yaş Kartı (Eğer tarih seçilmişse yaşı gösterir, yoksa boş)
             Container(
               height: 120,
               decoration: BoxDecoration(
@@ -134,9 +130,7 @@ class _BirthDayScreenState extends ConsumerState<BirthDayScreen> {
               ),
               alignment: Alignment.center,
               child: Text(
-                age != null
-                    ? age.toString()
-                    : '—', // Yaş varsa göster, yoksa tire
+                age != null ? age.toString() : '—',
                 style: const TextStyle(
                   fontFamily: 'Montserrat',
                   fontSize: 50,
@@ -147,10 +141,8 @@ class _BirthDayScreenState extends ConsumerState<BirthDayScreen> {
             ),
             const SizedBox(height: 24.0),
 
-            // 4. Tarih Seçme Alanı
             GestureDetector(
-              onTap: () =>
-                  _selectDate(context), // Tıklandığında tarih seçici açılır
+              onTap: () => _selectDate(context),
               child: Container(
                 padding: const EdgeInsets.symmetric(
                     horizontal: 24.0, vertical: 18.0),
@@ -163,7 +155,7 @@ class _BirthDayScreenState extends ConsumerState<BirthDayScreen> {
                   children: <Widget>[
                     Text(
                       _selectedDate == null
-                          ? 'February / 20 / 1999' // Varsayılan yer tutucu metin
+                          ? 'February / 20 / 1999'
                           : '${_selectedDate!.month.toString().padLeft(2, '0')} / ${_selectedDate!.day.toString().padLeft(2, '0')} / ${_selectedDate!.year}',
                       style: const TextStyle(
                         fontFamily: 'Montserrat',
@@ -177,26 +169,27 @@ class _BirthDayScreenState extends ConsumerState<BirthDayScreen> {
               ),
             ),
 
-            const Spacer(), // İleri butonunu en alta iter
+            const Spacer(),
 
-            // 5. Next Butonu
             ElevatedButton(
               onPressed: age != null
                   ? () {
-                      // if (_selectedDate != null) {
-                      // ref
-                      //   .read(onboardingProvider.notifier)
-                      // .setBirthDate(_selectedDate!);
-                      //}
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          // Yeni sayfanızı buraya yönlendiriyoruz
-                          builder: (context) => TallScreen(),
-                        ),
-                      );
-                    }
-                  : null, // Yaş seçilmemişse butonu devre dışı bırakır (null)
+                // ⚠️ DÜZELTİLEN KISIM BURASI ⚠️
+                // Yorum satırları kaldırıldı ve veriyi kaydediyoruz.
+                if (_selectedDate != null) {
+                  ref
+                      .read(onboardingProvider.notifier)
+                      .setBirthDate(_selectedDate!);
+                }
+
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => TallScreen(),
+                  ),
+                );
+              }
+                  : null,
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(double.infinity, 56),
                 backgroundColor: primaryGreen,
