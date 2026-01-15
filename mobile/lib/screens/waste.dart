@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:animated_bottom_navigation_bar/animated_bottom_navigation_bar.dart';
 import 'package:eco_kitchen/screens/home.dart';
 import 'package:eco_kitchen/screens/ai_chef.dart';
+import 'package:eco_kitchen/screens/search_recipe.dart';
+import 'package:eco_kitchen/screens/favorites.dart';
+import 'package:eco_kitchen/screens/profile.dart';
 
 const Color primaryGreen = Color(0xFF9DB67B);
 const Color secondaryGreen = Color(0xFFE4EEE1);
@@ -125,6 +128,21 @@ class _WasteScreenState extends State<WasteScreen> {
               context,
               MaterialPageRoute(builder: (context) => HomeScreen()),
               (route) => false,
+            );
+          } else if (index == 1) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => SearchRecipeScreen()),
+            );
+          } else if (index == 2) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => FavoritesScreen()),
+            );
+          } else if (index == 3) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => ProfileScreen()),
             );
           } else {
             setState(() => _bottomNavIndex = index);

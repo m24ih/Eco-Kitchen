@@ -10,6 +10,7 @@ import 'package:eco_kitchen/screens/profile.dart';
 import 'package:eco_kitchen/data/favorites_data.dart';
 
 import '../auth/auth_gate.dart';
+import '../backend/favorites_api.dart';
 import '../backend/recipes_api.dart';
 import '../backend/token_store.dart';
 
@@ -25,6 +26,7 @@ class SearchRecipeScreen extends StatefulWidget {
 class _SearchRecipeScreenState extends State<SearchRecipeScreen> {
   int _bottomNavIndex = 1; // Search tab is active
   final RecipesApi _recipesApi = RecipesApi();
+  final FavoritesApi _favoritesApi = FavoritesApi();
   final TextEditingController _searchController = TextEditingController();
   Timer? _debounceTimer;
   bool _isLoading = false;
@@ -135,10 +137,38 @@ class _SearchRecipeScreenState extends State<SearchRecipeScreen> {
     });
   }
 
-  void _toggleFavorite(Map<String, dynamic> recipe) {
-    setState(() {
-      favoritesData.toggleFavorite(recipe);
-    });
+  Future<void> _toggleFavorite({
+    required int recipeId,
+    required String title,
+    required String image,
+  }) async {
+    final isFav = favoritesData.isFavorite(title);
+    try {
+      if (isFav) {
+        await _favoritesApi.removeFavorite(recipeId);
+        favoritesData.removeFavorite(title);
+      } else {
+        await _favoritesApi.addFavorite(recipeId);
+        favoritesData.addFavorite({
+          'id': recipeId,
+          'title': title,
+          'image': image,
+        });
+      }
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not update favorite. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Widget _buildFAB() {
@@ -437,8 +467,11 @@ class _SearchRecipeScreenState extends State<SearchRecipeScreen> {
                   top: 8,
                   right: 8,
                   child: GestureDetector(
-                    onTap: () =>
-                        _toggleFavorite({'title': title, 'image': image}),
+                    onTap: () => _toggleFavorite(
+                      recipeId: recipeId,
+                      title: title,
+                      image: image,
+                    ),
                     child: Container(
                       width: 28,
                       height: 28,

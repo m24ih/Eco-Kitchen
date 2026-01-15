@@ -8,6 +8,8 @@ import 'package:eco_kitchen/screens/profile.dart';
 import 'package:eco_kitchen/data/favorites_data.dart';
 
 import '../auth/auth_gate.dart';
+import '../backend/favorites_api.dart';
+import '../backend/recipes_api.dart';
 import '../backend/token_store.dart';
 
 const Color primaryGreen = Color(0xFF9DB67B);
@@ -21,6 +23,12 @@ class FavoritesScreen extends StatefulWidget {
 
 class _FavoritesScreenState extends State<FavoritesScreen> {
   int _bottomNavIndex = 2; // Favorites tab is active
+  final FavoritesApi _favoritesApi = FavoritesApi();
+  final RecipesApi _recipesApi = RecipesApi();
+  bool _isLoading = false;
+  String? _errorMessage;
+  List<FavoriteRecipe> _favorites = [];
+  final Map<int, RecipeCard> _recipeCards = {};
 
   final iconList = <IconData>[
     Icons.home_outlined,
@@ -29,17 +37,11 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     Icons.person_outline,
   ];
 
-  void _toggleFavorite(int index) {
-    setState(() {
-      final item = favoritesData.favorites[index];
-      favoritesData.removeFavorite(item['title']);
-    });
-  }
-
   @override
   void initState() {
     super.initState();
     _ensureAuthenticated();
+    _loadFavorites();
   }
 
   Future<void> _ensureAuthenticated() async {
@@ -51,6 +53,104 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const AuthGate()),
+      );
+    }
+  }
+
+  Future<void> _loadFavorites() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final items = await _favoritesApi.fetchFavorites();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _favorites = items;
+        _isLoading = false;
+      });
+      await _loadRecipeCards(items);
+      _syncLocalFavorites(items);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Could not load favorites.';
+      });
+    }
+  }
+
+  Future<void> _loadRecipeCards(List<FavoriteRecipe> items) async {
+    final ids = items.map((item) => item.recipeId).where((id) => id > 0).toSet();
+    if (ids.isEmpty) {
+      return;
+    }
+    final futures = ids.map((id) async {
+      try {
+        final detail = await _recipesApi.fetchRecipeDetail(id);
+        return MapEntry(id, detail.card);
+      } catch (_) {
+        return null;
+      }
+    });
+    final results = await Future.wait(futures);
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _recipeCards.clear();
+      for (final entry in results) {
+        if (entry != null) {
+          _recipeCards[entry.key] = entry.value;
+        }
+      }
+    });
+  }
+
+  void _syncLocalFavorites(List<FavoriteRecipe> items) {
+    final existing = List<Map<String, dynamic>>.from(favoritesData.favorites);
+    for (final item in existing) {
+      final title = item['title']?.toString() ?? '';
+      if (title.isNotEmpty) {
+        favoritesData.removeFavorite(title);
+      }
+    }
+    for (final item in items) {
+      final card = _recipeCards[item.recipeId];
+      final title =
+          (card?.name.isNotEmpty == true) ? card!.name : item.recipeName;
+      if (title.isEmpty) {
+        continue;
+      }
+      final imageUrl = card?.imageUrl.isNotEmpty == true
+          ? card!.imageUrl
+          : item.recipeImageUrl;
+      favoritesData.addFavorite({
+        'id': item.recipeId,
+        'title': title,
+        'image': imageUrl.isNotEmpty ? imageUrl : 'assets/images/meal.png',
+      });
+    }
+  }
+
+  Future<void> _removeFavorite(FavoriteRecipe item) async {
+    try {
+      await _favoritesApi.removeFavorite(item.recipeId);
+      await _loadFavorites();
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not remove favorite. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -84,7 +184,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final favorites = favoritesData.favorites;
+    final favorites = _favorites;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -151,54 +251,66 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
             // Recipes grid or empty state
             Expanded(
-              child: favorites.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.favorite_border,
-                            size: 64,
-                            color: Colors.grey[300],
+              child: _isLoading
+                  ? Center(child: CircularProgressIndicator())
+                  : _errorMessage != null
+                      ? Center(
+                          child: Text(
+                            _errorMessage!,
+                            style: TextStyle(color: Colors.grey[500]),
                           ),
-                          SizedBox(height: 16),
-                          Text(
-                            'No favorites yet',
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: Colors.grey[500],
-                              fontWeight: FontWeight.w500,
+                        )
+                      : favorites.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.favorite_border,
+                                    size: 64,
+                                    color: Colors.grey[300],
+                                  ),
+                                  SizedBox(height: 16),
+                                  Text(
+                                    'No favorites yet',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      color: Colors.grey[500],
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  SizedBox(height: 8),
+                                  Text(
+                                    'Tap the heart icon on recipes to add them here',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey[400],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : GridView.builder(
+                              padding: EdgeInsets.fromLTRB(24, 8, 24, 24),
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                crossAxisSpacing: 16,
+                                mainAxisSpacing: 16,
+                                childAspectRatio: 0.7,
+                              ),
+                              itemCount: favorites.length,
+                              itemBuilder: (context, index) {
+                                final recipe = favorites[index];
+                                return _buildRecipeCard(
+                                  title: recipe.recipeName,
+                                  image: recipe.recipeImageUrl.isNotEmpty
+                                      ? recipe.recipeImageUrl
+                                      : 'assets/images/meal.png',
+                                  index: index,
+                                );
+                              },
                             ),
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            'Tap the heart icon on recipes to add them here',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[400],
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : GridView.builder(
-                      padding: EdgeInsets.fromLTRB(24, 8, 24, 24),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                        childAspectRatio: 0.7,
-                      ),
-                      itemCount: favorites.length,
-                      itemBuilder: (context, index) {
-                        final recipe = favorites[index];
-                        return _buildRecipeCard(
-                          title: recipe['title'],
-                          image: recipe['image'] ?? 'assets/images/meal.png',
-                          index: index,
-                        );
-                      },
-                    ),
             ),
           ],
         ),
@@ -211,8 +323,12 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     required String image,
     required int index,
   }) {
-    final recipe = favoritesData.favorites[index];
-    final id = (recipe['id'] as num?)?.toInt() ?? 0;
+    final recipe = _favorites[index];
+    final card = _recipeCards[recipe.recipeId];
+    final displayTitle =
+        (card?.name.isNotEmpty == true) ? card!.name : title;
+    final imageUrl =
+        (card?.imageUrl.isNotEmpty == true) ? card!.imageUrl : image;
 
     return GestureDetector(
       onTap: () {
@@ -220,9 +336,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           context,
           MaterialPageRoute(
             builder: (context) => RecipeScreen(
-              recipeId: id,
-              title: title,
-              image: image,
+              recipeId: recipe.recipeId,
+              title: displayTitle,
+              image: imageUrl.isNotEmpty ? imageUrl : image,
             ),
           ),
         );
@@ -249,10 +365,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(16),
-                    child: Image.asset(
-                      image,
-                      fit: BoxFit.cover,
-                    ),
+                    child: _buildRecipeImage(imageUrl),
                   ),
                 ),
                 // Favorite button (remove from favorites)
@@ -260,7 +373,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   top: 8,
                   right: 8,
                   child: GestureDetector(
-                    onTap: () => _toggleFavorite(index),
+                    onTap: () => _removeFavorite(recipe),
                     child: Container(
                       width: 32,
                       height: 32,
@@ -289,7 +402,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           SizedBox(height: 8),
           // Recipe title
           Text(
-            title,
+            displayTitle,
             maxLines: 3,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
@@ -300,6 +413,32 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildRecipeImage(String imageUrl) {
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      return Image.network(
+        imageUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return _buildImageFallback();
+        },
+      );
+    }
+    return _buildImageFallback();
+  }
+
+  Widget _buildImageFallback() {
+    return Container(
+      color: Colors.grey[200],
+      child: Center(
+        child: Icon(
+          Icons.image_not_supported_outlined,
+          color: Colors.grey[400],
+          size: 32,
+        ),
       ),
     );
   }

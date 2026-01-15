@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:eco_kitchen/screens/onboarding3.dart';
 import 'package:eco_kitchen/screens/sign_in.dart';
 
-import '../backend/onboarding_store.dart';
 
 // Ana renk kodumuz
 const Color primaryGreen = Color(0xFF9DB67B);
@@ -10,11 +9,6 @@ const Color lightGreenDot =
     Color(0xFFC7D3B5); // Noktalar için biraz daha açık bir ton kullandım.
 
 class Onboarding2Screen extends StatelessWidget {
-  Future<void> _markSeen() async {
-    final onboardingStore = OnboardingStore();
-    await onboardingStore.setSeenOnboarding();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -123,8 +117,7 @@ class Onboarding2Screen extends StatelessWidget {
                 const SizedBox(height: 12.0),
 
                 OutlinedButton(
-                  onPressed: () async {
-                    await _markSeen();
+                  onPressed: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => SignInScreen()),

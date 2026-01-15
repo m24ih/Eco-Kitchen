@@ -10,6 +10,7 @@ import 'package:eco_kitchen/data/favorites_data.dart';
 import '../auth/auth_gate.dart';
 import '../backend/token_store.dart';
 import '../backend/recipes_api.dart';
+import '../backend/favorites_api.dart';
 
 const Color primaryGreen = Color(0xFF9DB67B);
 const Color secondaryGreen = Color(0xFFE4EEE1);
@@ -35,6 +36,8 @@ class _RecipeScreenState extends State<RecipeScreen> {
   int _bottomNavIndex = 0;
   int _selectedTab = 0; // 0: Cookware, 1: Ingredients, 2: Instructions
   final RecipesApi _recipesApi = RecipesApi();
+  final FavoritesApi _favoritesApi = FavoritesApi();
+  bool _isFavorite = false;
   bool _isLoading = true;
   String? _errorMessage;
   RecipeDetail? _detail;
@@ -51,6 +54,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
     super.initState();
     _ensureAuthenticated();
     _loadRecipe();
+    _loadFavoriteStatus();
   }
 
   Future<void> _ensureAuthenticated() async {
@@ -127,12 +131,67 @@ class _RecipeScreenState extends State<RecipeScreen> {
     );
   }
 
+  Future<void> _loadFavoriteStatus() async {
+    try {
+      final items = await _favoritesApi.fetchFavorites();
+      if (!mounted) {
+        return;
+      }
+      final isFavorite =
+          items.any((item) => item.recipeId == widget.recipeId);
+      setState(() {
+        _isFavorite = isFavorite;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+    }
+  }
+
+  Future<void> _toggleFavorite() async {
+    final recipeId = widget.recipeId;
+    if (recipeId <= 0) {
+      return;
+    }
+
+    try {
+      if (_isFavorite) {
+        await _favoritesApi.removeFavorite(recipeId);
+        favoritesData.removeFavorite(_detail?.card.name ?? widget.title);
+      } else {
+        await _favoritesApi.addFavorite(recipeId);
+        favoritesData.addFavorite({
+          'id': recipeId,
+          'title': _detail?.card.name ?? widget.title,
+          'image': _detail?.card.imageUrl ?? widget.image,
+        });
+      }
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isFavorite = !_isFavorite;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not update favorite. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final title = _detail?.card.name.isNotEmpty == true
         ? _detail!.card.name
         : widget.title;
-    bool isFav = favoritesData.isFavorite(title);
+    final isFav = _isFavorite;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -247,14 +306,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
                                 top: 12,
                                 right: 12,
                                 child: GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      favoritesData.toggleFavorite({
-                                        'title': title,
-                                        'image': widget.image,
-                                      });
-                                    });
-                                  },
+                                  onTap: _toggleFavorite,
                                   child: Container(
                                     width: 40,
                                     height: 40,

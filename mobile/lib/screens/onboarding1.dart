@@ -2,16 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:eco_kitchen/screens/onboarding2.dart';
 import 'package:eco_kitchen/screens/sign_in.dart';
 
-import '../backend/onboarding_store.dart';
 
 const Color primaryGreen = Color(0xFF9DB67B);
 
 class OnboardingScreen extends StatelessWidget {
-  Future<void> _markSeen(BuildContext context) async {
-    final onboardingStore = OnboardingStore();
-    await onboardingStore.setSeenOnboarding();
-  }
-
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
@@ -69,8 +63,7 @@ class OnboardingScreen extends StatelessWidget {
                   children: <Widget>[
                     // 'Get Started' Butonu
                     ElevatedButton(
-                      onPressed: () async {
-                        await _markSeen(context);
+                      onPressed: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -128,8 +121,7 @@ class OnboardingScreen extends StatelessWidget {
 
                     // 'Login' Metin Butonu
                     TextButton(
-                      onPressed: () async {
-                        await _markSeen(context);
+                      onPressed: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:animated_bottom_navigation_bar/animated_bottom_navigation_bar.dart';
 import 'package:eco_kitchen/screens/home.dart';
 import 'package:eco_kitchen/screens/ai_chef.dart';
+import 'package:eco_kitchen/screens/search_recipe.dart';
+import 'package:eco_kitchen/screens/favorites.dart';
+import 'package:eco_kitchen/screens/profile.dart';
 
 import '../backend/shopping_list_api.dart';
 import 'add_shopping_list_item_screen.dart';
@@ -248,6 +251,21 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
               context,
               MaterialPageRoute(builder: (context) => HomeScreen()),
               (route) => false,
+            );
+          } else if (index == 1) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => SearchRecipeScreen()),
+            );
+          } else if (index == 2) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => FavoritesScreen()),
+            );
+          } else if (index == 3) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => ProfileScreen()),
             );
           } else {
             setState(() => _bottomNavIndex = index);

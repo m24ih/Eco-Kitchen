@@ -2,17 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:eco_kitchen/screens/onboarding4.dart';
 import 'package:eco_kitchen/screens/sign_in.dart';
 
-import '../backend/onboarding_store.dart';
 
 const Color primaryGreen = Color(0xFF9DB67B);
 const Color lightGreenDot = Color(0xFFC7D3B5);
 
 class Onboarding3Screen extends StatelessWidget {
-  Future<void> _markSeen() async {
-    final onboardingStore = OnboardingStore();
-    await onboardingStore.setSeenOnboarding();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -20,8 +14,7 @@ class Onboarding3Screen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         actions: <Widget>[
           TextButton(
-            onPressed: () async {
-              await _markSeen();
+            onPressed: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => SignInScreen()),
@@ -126,8 +119,7 @@ class Onboarding3Screen extends StatelessWidget {
 
                 // Sign In Butonu (Metin Butonu)
                 OutlinedButton(
-                  onPressed: () async {
-                    await _markSeen();
+                  onPressed: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => SignInScreen()),
