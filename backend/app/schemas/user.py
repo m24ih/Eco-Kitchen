@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, EmailStr, ConfigDict, field_validator
 from datetime import datetime
 from typing import Optional
 
@@ -8,6 +8,7 @@ class UserBase(BaseModel):
 
 # Kayıt olurken istenecek veriler (Şifre şart!)
 class UserCreate(BaseModel):
+    name: str
     email: EmailStr
     password: str
     # Yeni eklenenler:
@@ -17,10 +18,33 @@ class UserCreate(BaseModel):
     goal: Optional[str] = None
     birth_date: Optional[datetime] = None
 
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, value: str) -> str:
+        if len(value) < 8:
+            raise ValueError("Password must be at least 8 characters long.")
+        if not any(char.isdigit() for char in value):
+            raise ValueError("Password must include at least one digit.")
+        if not any(char.islower() for char in value):
+            raise ValueError("Password must include at least one lowercase letter.")
+        if not any(char.isupper() for char in value):
+            raise ValueError("Password must include at least one uppercase letter.")
+        return value
+
+    @field_validator("name")
+    @classmethod
+    def normalize_name(cls, value: str) -> str:
+        trimmed = value.strip()
+        if not trimmed:
+            raise ValueError("Name is required.")
+        collapsed = " ".join(trimmed.split())
+        return collapsed.title()
+
 # Kullanıcıya geri döndüreceğimiz veriler (Şifreyi gizliyoruz!)
 class UserOut(BaseModel):
     id: int
     email: EmailStr
+    name: Optional[str] = None
     is_active: bool
     # Yeni eklenenler:
     height: Optional[int] = None

@@ -15,12 +15,19 @@ router = APIRouter()
 
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
-    # ... (Email kontrolü aynı kalacak) ...
+    result = await db.execute(select(User).where(User.email == user.email))
+    existing_user = result.scalars().first()
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Email already registered",
+        )
     
     hashed_password = get_password_hash(user.password)
     
     # Yeni alanları da ekleyerek oluştur
     new_user = User(
+        name=user.name,
         email=user.email,
         password_hash=hashed_password,
         height=user.height,

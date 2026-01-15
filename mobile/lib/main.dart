@@ -1,14 +1,6 @@
-import 'package:eco_kitchen/screens/birth_day.dart';
-import 'package:eco_kitchen/screens/goal.dart';
-import 'package:eco_kitchen/screens/register_screen.dart';
-import 'package:eco_kitchen/screens/sport.dart';
-import 'package:eco_kitchen/screens/tall.dart';
-import 'package:eco_kitchen/screens/verification.dart';
-import 'package:eco_kitchen/screens/weight.dart';
 import 'package:flutter/material.dart';
-import 'package:eco_kitchen/screens/home.dart';
-import 'package:eco_kitchen/screens/splash_screen.dart';
-import 'screens/onboarding1.dart';
+
+import 'auth/auth_gate.dart';
 
 // Renk kodunu tanımlayalım
 const Color primaryGreen = Color(0xFF9DB67B);
@@ -45,7 +37,7 @@ class MyApp extends StatelessWidget {
       ),
 
       // Uygulamanın ilk açılacak sayfasını belirliyoruz.
-      home: SplashScreen(),
+      home: const AuthGate(),
     );
   }
 }

@@ -1,13 +1,19 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 // Kütüphaneyi import ediyoruz
 import 'package:animated_bottom_navigation_bar/animated_bottom_navigation_bar.dart';
-import 'package:eco_kitchen/screens/leftover.dart';
+import 'package:eco_kitchen/screens/inventory.dart';
 import 'package:eco_kitchen/screens/waste.dart';
 import 'package:eco_kitchen/screens/shopping_list.dart';
 import 'package:eco_kitchen/screens/favorites.dart';
 import 'package:eco_kitchen/screens/search_recipe.dart';
 import 'package:eco_kitchen/screens/ai_chef.dart';
 import 'package:eco_kitchen/screens/profile.dart';
+
+import '../backend/token_store.dart';
+import '../environment/env.dart';
 
 // Ana renk kodlarımız
 const Color primaryGreen = Color(0xFF9DB67B);
@@ -22,6 +28,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _bottomNavIndex = 0; // Şu anda seçili olan sekme
+  String _userName = "";
 
   // Navigasyon ikonları (Tasarımınızdaki sıra ile)
   final iconList = <IconData>[
@@ -110,9 +117,9 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: <Widget>[
-          const Text(
-            'Welcome, Sevval!',
-            style: TextStyle(
+          Text(
+            _userName.isNotEmpty ? 'Welcome, $_userName!' : 'Welcome!',
+            style: const TextStyle(
               fontFamily: 'Montserrat',
               fontSize: 24.0,
               fontWeight: FontWeight.bold,
@@ -203,11 +210,11 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 40.0),
               _buildRowButton(
                   icon: Icons.restaurant_rounded,
-                  text: 'Leftover Ingredient Inventory',
+                  text: 'Inventory',
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => LeftoverScreen()),
+                      MaterialPageRoute(builder: (context) => InventoryScreen()),
                     );
                   }),
               const SizedBox(height: 30.0),
@@ -248,5 +255,37 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserName();
+  }
+
+  Future<void> _loadUserName() async {
+    final token = await TokenStore().getToken();
+    if (token == null || token.isEmpty) {
+      return;
+    }
+
+    final uri = Uri.parse("${Env.baseUrl}/api/v1/auth/me");
+    try {
+      final response = await http.get(
+        uri,
+        headers: {"Authorization": "Bearer $token"},
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final name = data["name"] as String?;
+        if (name != null && name.isNotEmpty) {
+          setState(() {
+            _userName = name;
+          });
+        }
+      }
+    } catch (_) {
+      // Ignore name load errors to avoid disrupting the UI.
+    }
   }
 }

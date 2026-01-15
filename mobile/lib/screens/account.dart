@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../backend/auth_api.dart';
+
 const Color primaryGreen = Color(0xFF9DB67B);
 const Color secondaryGreen = Color(0xFFE4EEE1);
 
@@ -9,14 +11,19 @@ class AccountScreen extends StatefulWidget {
 }
 
 class _AccountScreenState extends State<AccountScreen> {
-  final TextEditingController _nameController =
-      TextEditingController(text: 'Şevval YILDIZ');
-  final TextEditingController _emailController =
-      TextEditingController(text: 'yildiz2.kar@gmail.com');
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController =
       TextEditingController(text: '••••••••');
   bool _obscurePassword = true;
   bool _isEditing = false;
+  final AuthApi _authApi = AuthApi();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
 
   @override
   void dispose() {
@@ -36,6 +43,21 @@ class _AccountScreenState extends State<AccountScreen> {
         backgroundColor: primaryGreen,
       ),
     );
+  }
+
+  Future<void> _loadProfile() async {
+    try {
+      final data = await _authApi.me();
+      if (!mounted) {
+        return;
+      }
+      _nameController.text = (data['name'] ?? '').toString();
+      _emailController.text = (data['email'] ?? '').toString();
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+    }
   }
 
   @override

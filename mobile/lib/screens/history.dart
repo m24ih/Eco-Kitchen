@@ -217,6 +217,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => RecipeScreen(
+                          recipeId: (item['id'] as num?)?.toInt() ?? 0,
                           title: item['title']!,
                           image: item['image']!,
                         ),

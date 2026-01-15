@@ -3,6 +3,11 @@ import 'package:animated_bottom_navigation_bar/animated_bottom_navigation_bar.da
 import 'package:eco_kitchen/screens/home.dart';
 import 'package:eco_kitchen/screens/ai_chef.dart';
 
+import '../backend/shopping_list_api.dart';
+import 'add_shopping_list_item_screen.dart';
+import '../auth/auth_gate.dart';
+import '../backend/token_store.dart';
+
 const Color primaryGreen = Color(0xFF9DB67B);
 const Color secondaryGreen = Color(0xFFE4EEE1);
 const Color lightGreen = Color(0xFFF5F8F3);
@@ -15,6 +20,9 @@ class ShoppingListScreen extends StatefulWidget {
 class _ShoppingListScreenState extends State<ShoppingListScreen> {
   int _bottomNavIndex = 0;
   final TextEditingController _textController = TextEditingController();
+  final ShoppingListApi _shoppingListApi = ShoppingListApi();
+  bool _isLoading = false;
+  String? _errorMessage;
 
   final iconList = <IconData>[
     Icons.home,
@@ -23,40 +31,164 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     Icons.person_outline,
   ];
 
-  // Shopping list items with checked state
-  final List<Map<String, dynamic>> _items = [
-    {'text': 'Drink 8 glasses of water', 'checked': false},
-    {'text': 'Meditate for 10 minutes', 'checked': false},
-    {'text': 'Read a chapter of a book', 'checked': false},
-    {'text': 'Go for a 30-minute walk', 'checked': false},
-    {'text': 'Write in a gratitude journal', 'checked': false},
-    {'text': 'Plan meals for the day', 'checked': false},
-    {'text': 'Practice deep breathing exercises', 'checked': false},
-    {'text': 'Stretch for 15 minutes', 'checked': false},
-  ];
+  List<ShoppingListItem> _items = [];
 
-  void _addItem() {
-    if (_textController.text.isNotEmpty) {
+  @override
+  void initState() {
+    super.initState();
+    _ensureAuthenticated();
+  }
+
+  Future<void> _ensureAuthenticated() async {
+    final token = await TokenStore().getToken();
+    if (!mounted) {
+      return;
+    }
+    if (token == null || token.isEmpty) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const AuthGate()),
+      );
+      return;
+    }
+    _loadShoppingList();
+  }
+
+  Future<void> _loadShoppingList() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final items = await _shoppingListApi.fetchShoppingList();
+      if (!mounted) {
+        return;
+      }
       setState(() {
-        _items.add({
-          'text': _textController.text,
-          'checked': false,
-        });
-        _textController.clear();
+        _items = items;
       });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _errorMessage = error.toString();
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
-  void _toggleItem(int index) {
-    setState(() {
-      _items[index]['checked'] = !_items[index]['checked'];
-    });
+  Future<void> _addItem() async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (context) => const AddShoppingListItemScreen()),
+    );
+
+    if (result == true) {
+      _loadShoppingList();
+    }
   }
 
-  void _deleteItem(int index) {
-    setState(() {
-      _items.removeAt(index);
-    });
+  Future<void> _toggleItem(ShoppingListItem item) async {
+    try {
+      await _shoppingListApi.updateItem(
+        item.id,
+        isChecked: !item.isChecked,
+      );
+      await _loadShoppingList();
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not update item. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _confirmDeleteItem(ShoppingListItem item) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Delete item?'),
+        content: Text('Remove ${item.name} from your shopping list?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete == true) {
+      _deleteItem(item);
+    }
+  }
+
+  Future<void> _deleteItem(ShoppingListItem item) async {
+    try {
+      await _shoppingListApi.deleteItem(item.id);
+      await _loadShoppingList();
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${item.name} removed!'),
+          backgroundColor: primaryGreen,
+        ),
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not delete item. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _transferItem(ShoppingListItem item) async {
+    try {
+      await _shoppingListApi.transferToInventory(item.id);
+      await _loadShoppingList();
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${item.name} moved to inventory.'),
+          backgroundColor: primaryGreen,
+        ),
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not transfer item. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Widget _buildFAB() {
@@ -149,19 +281,30 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
 
             // Shopping list items
             Expanded(
-              child: ListView.builder(
-                padding: EdgeInsets.fromLTRB(24, 16, 24, 8),
-                itemCount: _items.length,
-                itemBuilder: (context, index) {
-                  final item = _items[index];
-                  return _buildListItem(
-                    text: item['text'],
-                    checked: item['checked'],
-                    onToggle: () => _toggleItem(index),
-                    onDelete: () => _deleteItem(index),
-                  );
-                },
-              ),
+              child: _isLoading
+                  ? Center(child: CircularProgressIndicator())
+                  : _items.isEmpty
+                      ? Center(
+                          child: Text(
+                            _errorMessage ?? 'No shopping list items yet.',
+                            style: TextStyle(color: Colors.grey[600]),
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: EdgeInsets.fromLTRB(24, 16, 24, 8),
+                          itemCount: _items.length,
+                          itemBuilder: (context, index) {
+                            final item = _items[index];
+                            return _buildListItem(
+                              text:
+                                  '${item.name} • ${formatQuantity(item.quantity, item.unit)}',
+                              checked: item.isChecked,
+                              onToggle: () => _toggleItem(item),
+                              onDelete: () => _confirmDeleteItem(item),
+                              onTransfer: () => _transferItem(item),
+                            );
+                          },
+                        ),
             ),
 
             // Add item input
@@ -179,6 +322,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                       ),
                       child: TextField(
                         controller: _textController,
+                        readOnly: true,
                         decoration: InputDecoration(
                           hintText: 'Add new item...',
                           hintStyle: TextStyle(color: Colors.grey[400]),
@@ -186,7 +330,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                           contentPadding: EdgeInsets.symmetric(
                               horizontal: 20, vertical: 14),
                         ),
-                        onSubmitted: (_) => _addItem(),
+                        onTap: _addItem,
                       ),
                     ),
                   ),
@@ -226,6 +370,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     required bool checked,
     required VoidCallback onToggle,
     required VoidCallback onDelete,
+    required VoidCallback onTransfer,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -271,6 +416,15 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
             ),
             // Delete button
             GestureDetector(
+              onTap: onTransfer,
+              child: Icon(
+                Icons.swap_horiz,
+                color: Colors.grey,
+                size: 22,
+              ),
+            ),
+            SizedBox(width: 8),
+            GestureDetector(
               onTap: onDelete,
               child: Icon(
                 Icons.delete_outline,
@@ -282,5 +436,30 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         ),
       ),
     );
+  }
+
+  String formatQuantity(num quantity, String unit) {
+    final normalizedUnit = unit.trim().toLowerCase();
+    final value = quantity.toDouble();
+
+    if (normalizedUnit == 'ml' && value >= 1000) {
+      return '${_formatNumber(value / 1000)} L';
+    }
+
+    if (normalizedUnit == 'g' && value >= 1000) {
+      return '${_formatNumber(value / 1000)} kg';
+    }
+
+    final trimmedUnit = unit.trim();
+    final baseValue = _formatNumber(value);
+    if (trimmedUnit.isEmpty) {
+      return baseValue;
+    }
+    return '$baseValue $trimmedUnit';
+  }
+
+  String _formatNumber(double value) {
+    final fixed = value.toStringAsFixed(1);
+    return fixed.endsWith('.0') ? fixed.substring(0, fixed.length - 2) : fixed;
   }
 }

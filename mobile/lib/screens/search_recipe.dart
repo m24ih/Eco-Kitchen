@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:animated_bottom_navigation_bar/animated_bottom_navigation_bar.dart';
 import 'package:eco_kitchen/screens/home.dart';
@@ -6,6 +8,10 @@ import 'package:eco_kitchen/screens/recipe.dart';
 import 'package:eco_kitchen/screens/ai_chef.dart';
 import 'package:eco_kitchen/screens/profile.dart';
 import 'package:eco_kitchen/data/favorites_data.dart';
+
+import '../auth/auth_gate.dart';
+import '../backend/recipes_api.dart';
+import '../backend/token_store.dart';
 
 const Color primaryGreen = Color(0xFF9DB67B);
 const Color secondaryGreen = Color(0xFFE4EEE1);
@@ -18,6 +24,14 @@ class SearchRecipeScreen extends StatefulWidget {
 
 class _SearchRecipeScreenState extends State<SearchRecipeScreen> {
   int _bottomNavIndex = 1; // Search tab is active
+  final RecipesApi _recipesApi = RecipesApi();
+  final TextEditingController _searchController = TextEditingController();
+  Timer? _debounceTimer;
+  bool _isLoading = false;
+  String? _errorMessage;
+  List<RecipeCard> _featuredRecipes = [];
+  List<RecipeCard> _allRecipes = [];
+  List<RecipeCard> _filteredRecipes = [];
 
   final iconList = <IconData>[
     Icons.home_outlined,
@@ -26,55 +40,100 @@ class _SearchRecipeScreenState extends State<SearchRecipeScreen> {
     Icons.person_outline,
   ];
 
-  // Most Popular recipes
-  final List<Map<String, dynamic>> _mostPopular = [
-    {
-      'title': 'Brussels Sprouts, Mashed Potato & Sausage Bowl with...',
-      'image': 'assets/images/meal.png',
-      'isPro': true,
-    },
-    {
-      'title':
-          'Roasted Cauliflower & Black Bean Burrito Bowl with Cilantro Li...',
-      'image': 'assets/images/meal.png',
-      'isPro': false,
-    },
-    {
-      'title': 'Creamy Cashew Zucchini Noodles with Vegan...',
-      'image': 'assets/images/meal.png',
-      'isPro': false,
-    },
-    {
-      'title': 'Honey Glazed Salmon with Asparagus',
-      'image': 'assets/images/meal.png',
-      'isPro': true,
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _ensureAuthenticated();
+    _loadRecipes();
+  }
 
-  // Recently Created recipes
-  final List<Map<String, dynamic>> _recentlyCreated = [
-    {
-      'title': 'Indian Butter Chicken with Basmati Rice (Chicken Makhan...',
-      'image': 'assets/images/meal.png',
-      'isPro': false,
-    },
-    {
-      'title':
-          'Greek Salad with Feta Cheese & Kalamata Olives (Greek Deligh...',
-      'image': 'assets/images/meal.png',
-      'isPro': true,
-    },
-    {
-      'title': 'Italian Pasta with Tomato & Basil (Pomodoro)...',
-      'image': 'assets/images/meal.png',
-      'isPro': false,
-    },
-    {
-      'title': 'Thai Green Curry with Coconut Rice',
-      'image': 'assets/images/meal.png',
-      'isPro': false,
-    },
-  ];
+  Future<void> _ensureAuthenticated() async {
+    final token = await TokenStore().getToken();
+    if (!mounted) {
+      return;
+    }
+    if (token == null || token.isEmpty) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const AuthGate()),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadRecipes() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    List<RecipeCard> featured = [];
+    List<RecipeCard> all = [];
+    String? errorMessage;
+
+    try {
+      featured = await _recipesApi.fetchRecipes(
+        featured: true,
+        limit: 20,
+        offset: 0,
+      );
+    } catch (_) {
+      errorMessage = 'Failed to load featured recipes.';
+    }
+
+    try {
+      all = await _recipesApi.fetchRecipes(
+        limit: 50,
+        offset: 0,
+      );
+    } catch (_) {
+      if (errorMessage == null) {
+        errorMessage = 'Failed to load recipes.';
+      }
+    }
+
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _featuredRecipes = featured;
+      _allRecipes = all;
+      _filteredRecipes = [];
+      _errorMessage = errorMessage;
+      _isLoading = false;
+    });
+  }
+
+  void _onSearchChanged(String query) {
+    _debounceTimer?.cancel();
+    final trimmed = query.trim();
+    if (trimmed.length < 2) {
+      setState(() {
+        _filteredRecipes = [];
+      });
+      return;
+    }
+
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+      final lowerQuery = trimmed.toLowerCase();
+      final results = _allRecipes
+          .where((recipe) => recipe.name.toLowerCase().contains(lowerQuery))
+          .take(20)
+          .toList();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _filteredRecipes = results;
+      });
+    });
+  }
 
   void _toggleFavorite(Map<String, dynamic> recipe) {
     setState(() {
@@ -111,6 +170,7 @@ class _SearchRecipeScreenState extends State<SearchRecipeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final hasSearchQuery = _searchController.text.trim().length >= 2;
     return Scaffold(
       backgroundColor: Colors.white,
       floatingActionButton: _buildFAB(),
@@ -168,6 +228,7 @@ class _SearchRecipeScreenState extends State<SearchRecipeScreen> {
                       SizedBox(width: 16),
                       Expanded(
                         child: TextField(
+                          controller: _searchController,
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 16,
@@ -184,6 +245,7 @@ class _SearchRecipeScreenState extends State<SearchRecipeScreen> {
                             contentPadding: EdgeInsets.zero,
                           ),
                           cursorColor: Colors.white,
+                          onChanged: _onSearchChanged,
                         ),
                       ),
                       Icon(Icons.search, color: Colors.white),
@@ -192,20 +254,29 @@ class _SearchRecipeScreenState extends State<SearchRecipeScreen> {
                   ),
                 ),
               ),
-
-              // Most Popular section
-              _buildSectionHeader('Most Popular'),
-              SizedBox(height: 12),
-              _buildHorizontalRecipeList(_mostPopular),
-
-              SizedBox(height: 24),
-
-              // Recently Created section
-              _buildSectionHeader('Recently Created'),
-              SizedBox(height: 12),
-              _buildHorizontalRecipeList(_recentlyCreated),
-
-              SizedBox(height: 100),
+              if (_isLoading)
+                Padding(
+                  padding: const EdgeInsets.only(top: 40),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (_errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 40),
+                  child: Center(
+                    child: Text(
+                      _errorMessage!,
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                  ),
+                )
+              else if (hasSearchQuery)
+                _buildSearchResults()
+              else ...[
+                _buildSectionHeader('Featured'),
+                SizedBox(height: 12),
+                _buildFeaturedGrid(),
+                SizedBox(height: 100),
+              ],
             ],
           ),
         ),
@@ -243,7 +314,7 @@ class _SearchRecipeScreenState extends State<SearchRecipeScreen> {
     );
   }
 
-  Widget _buildHorizontalRecipeList(List<Map<String, dynamic>> recipes) {
+  Widget _buildHorizontalRecipeList(List<RecipeCard> recipes) {
     return SizedBox(
       height: 220,
       child: ListView.builder(
@@ -253,16 +324,46 @@ class _SearchRecipeScreenState extends State<SearchRecipeScreen> {
         itemBuilder: (context, index) {
           final recipe = recipes[index];
           return _buildRecipeCard(
-            title: recipe['title'],
-            image: recipe['image'],
-            isPro: recipe['isPro'] ?? false,
+            recipeId: recipe.id,
+            title: recipe.name,
+            image: recipe.imageUrl.isNotEmpty
+                ? recipe.imageUrl
+                : 'assets/images/meal.png',
+            isPro: recipe.isFeatured,
           );
         },
       ),
     );
   }
 
+  Widget _buildFeaturedGrid() {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.symmetric(horizontal: 24),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        childAspectRatio: 0.7,
+      ),
+      itemCount: _featuredRecipes.length,
+      itemBuilder: (context, index) {
+        final recipe = _featuredRecipes[index];
+        return _buildRecipeCard(
+          recipeId: recipe.id,
+          title: recipe.name,
+          image: recipe.imageUrl.isNotEmpty
+              ? recipe.imageUrl
+              : 'assets/images/meal.png',
+          isPro: recipe.isFeatured,
+        );
+      },
+    );
+  }
+
   Widget _buildRecipeCard({
+    required int recipeId,
     required String title,
     required String image,
     required bool isPro,
@@ -274,7 +375,11 @@ class _SearchRecipeScreenState extends State<SearchRecipeScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => RecipeScreen(title: title, image: image),
+            builder: (context) => RecipeScreen(
+              recipeId: recipeId,
+              title: title,
+              image: image,
+            ),
           ),
         );
       },
@@ -303,10 +408,7 @@ class _SearchRecipeScreenState extends State<SearchRecipeScreen> {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(16),
-                    child: Image.asset(
-                      image,
-                      fit: BoxFit.cover,
-                    ),
+                    child: _buildRecipeImage(image),
                   ),
                 ),
                 // Pro badge
@@ -377,6 +479,61 @@ class _SearchRecipeScreenState extends State<SearchRecipeScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildRecipeImage(String image) {
+    if (image.startsWith('http://') || image.startsWith('https://')) {
+      return Image.network(
+        image,
+        fit: BoxFit.cover,
+      );
+    }
+    return Image.asset(
+      image,
+      fit: BoxFit.cover,
+    );
+  }
+
+  Widget _buildSearchResults() {
+    if (_filteredRecipes.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 24),
+        child: Center(
+          child: Text(
+            'No recipes found.',
+            style: TextStyle(color: Colors.grey[600]),
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: EdgeInsets.fromLTRB(24, 0, 24, 24),
+      physics: NeverScrollableScrollPhysics(),
+      shrinkWrap: true,
+      itemCount: _filteredRecipes.length,
+      itemBuilder: (context, index) {
+        final recipe = _filteredRecipes[index];
+        return ListTile(
+          contentPadding: EdgeInsets.zero,
+          title: Text(recipe.name),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => RecipeScreen(
+                  recipeId: recipe.id,
+                  title: recipe.name,
+                  image: recipe.imageUrl.isNotEmpty
+                      ? recipe.imageUrl
+                      : 'assets/images/meal.png',
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

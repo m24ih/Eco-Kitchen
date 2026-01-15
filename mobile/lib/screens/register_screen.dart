@@ -1,10 +1,9 @@
-import 'package:dio/dio.dart';
-import 'package:eco_kitchen/core/services/api_service.dart';
-import 'package:eco_kitchen/screens/verification.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:eco_kitchen/core/providers/onboarding_provider.dart';
+import 'package:eco_kitchen/screens/sign_in.dart';
+
+import '../backend/auth_api.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   @override
@@ -17,6 +16,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
+  String? _errorMessage;
+
+  final AuthApi _authApi = AuthApi();
 
   // Password validation states
   bool get _hasMinLength => _passwordController.text.length >= 8;
@@ -24,7 +26,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   bool get _hasLetter => _passwordController.text.contains(RegExp(r'[a-zA-Z]'));
 
   Future<void> _register() async {
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+    if (_nameController.text.isEmpty ||
+        _emailController.text.isEmpty ||
+        _passwordController.text.isEmpty) {
+      setState(() {
+        _errorMessage = "Please fill in the fields";
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Please fill in the fields")),
       );
@@ -32,40 +39,49 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     }
 
     if (!_hasMinLength || !_hasNumber || !_hasLetter) {
+      setState(() {
+        _errorMessage = "It does not meet the password requirements.";
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("It does not meet the password requirements.")),
       );
       return;
     }
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
-    // API çağrısı geçici olarak devre dışı - Backend entegrasyonu için
-    // final onboardingData = ref.read(onboardingProvider);
-    // final dio = ref.read(apiServiceProvider);
-
-    // Geçici: Doğrudan verification ekranına git
-    await Future.delayed(Duration(milliseconds: 500)); // Simüle loading
-
-    if (mounted) {
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content:
-              Text("Registration successful! Enter the verification code."),
-          backgroundColor: Color(0xFF9DB67B),
-        ),
+    try {
+      await _authApi.register(
+        name: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
       );
-      Navigator.push(
+
+      if (!mounted) {
+        return;
+      }
+      Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (context) => VerificationScreen(
-            email: _emailController.text.trim(),
-          ),
-        ),
+        MaterialPageRoute(builder: (context) => SignInScreen()),
       );
+    } on ApiException catch (error) {
+      setState(() {
+        _errorMessage = error.message;
+      });
+    } catch (_) {
+      setState(() {
+        _errorMessage = "Something went wrong. Please try again.";
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
+
 
   @override
   void initState() {
@@ -250,6 +266,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               _buildPasswordRequirement(
                   "Atleast lowercase or uppercase letters", _hasLetter),
               SizedBox(height: 32),
+
+              if (_errorMessage != null) ...[
+                Text(
+                  _errorMessage!,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.red,
+                  ),
+                ),
+                SizedBox(height: 16),
+              ],
 
               // Register Button
               SizedBox(

@@ -7,6 +7,10 @@ import 'package:eco_kitchen/screens/recipe_reviews.dart';
 import 'package:eco_kitchen/screens/ai_chef.dart';
 import 'package:eco_kitchen/data/favorites_data.dart';
 
+import '../auth/auth_gate.dart';
+import '../backend/token_store.dart';
+import '../backend/recipes_api.dart';
+
 const Color primaryGreen = Color(0xFF9DB67B);
 const Color secondaryGreen = Color(0xFFE4EEE1);
 const Color lightGreen = Color(0xFFF5F8F3);
@@ -14,11 +18,13 @@ const Color lightGreen = Color(0xFFF5F8F3);
 class RecipeScreen extends StatefulWidget {
   final String title;
   final String image;
+  final int recipeId;
 
   const RecipeScreen({
     Key? key,
     required this.title,
     required this.image,
+    required this.recipeId,
   }) : super(key: key);
 
   @override
@@ -28,6 +34,10 @@ class RecipeScreen extends StatefulWidget {
 class _RecipeScreenState extends State<RecipeScreen> {
   int _bottomNavIndex = 0;
   int _selectedTab = 0; // 0: Cookware, 1: Ingredients, 2: Instructions
+  final RecipesApi _recipesApi = RecipesApi();
+  bool _isLoading = true;
+  String? _errorMessage;
+  RecipeDetail? _detail;
 
   final iconList = <IconData>[
     Icons.home_outlined,
@@ -36,69 +46,59 @@ class _RecipeScreenState extends State<RecipeScreen> {
     Icons.person_outline,
   ];
 
-  // Recipe data
-  final Map<String, dynamic> _recipeData = {
-    'time': '35 minutes',
-    'servings': '2 servings',
-    'nutrition': {
-      'carbs': '65g carbs',
-      'proteins': '27g proteins',
-      'kcal': '120 Kcal',
-      'fats': '91g fats',
-    },
-    'ingredients': [
-      {'name': 'basmati rice', 'quantity': '½ cup'},
-      {'name': 'chicken or vegetable broth', 'quantity': '16 fl oz'},
-      {'name': 'cilantro', 'quantity': '½ small bunch'},
-      {'name': 'coconut milk', 'quantity': '½ (13.5 fl oz) can'},
-      {'name': 'garlic', 'quantity': '1 (1 inch) piece'},
-      {'name': 'red lentils', 'quantity': '1 cup'},
-      {'name': 'tomatoes', 'quantity': '2 medium'},
-      {'name': 'curry powder', 'quantity': '2 tbsp'},
-    ],
-    'instructions': [
-      {
-        'step': 1,
-        'text':
-            'Using a strainer or colander, rinse the rice under cold, running water, then drain and transfer to a small saucepan. Add broth and bring the mixture to a boil over high heat.',
-        'ingredients': [
-          '½ cup basmati rice',
-          '8 fl oz (1 cup) chicken or vegetable broth'
-        ],
-      },
-      {
-        'step': 2,
-        'text':
-            'Once boiling, reduce heat to low, cover, and simmer until rice is tender and liquid is absorbed, about 15-18 minutes.',
-        'ingredients': [],
-      },
-      {
-        'step': 3,
-        'text':
-            'Meanwhile, heat oil in a large skillet over medium heat. Add garlic and cook until fragrant, about 1 minute.',
-        'ingredients': ['1 tbsp olive oil', '2 cloves garlic, minced'],
-      },
-      {
-        'step': 4,
-        'text':
-            'Add lentils, remaining broth, coconut milk, and curry powder. Bring to a simmer and cook until lentils are tender, about 20 minutes.',
-        'ingredients': [
-          '1 cup red lentils',
-          '½ can coconut milk',
-          '2 tbsp curry powder'
-        ],
-      },
-      {
-        'step': 5,
-        'text':
-            'Stir in tomatoes and cilantro. Season with salt and pepper to taste. Serve over rice.',
-        'ingredients': [
-          '2 medium tomatoes, diced',
-          '½ bunch cilantro, chopped'
-        ],
-      },
-    ],
-  };
+  @override
+  void initState() {
+    super.initState();
+    _ensureAuthenticated();
+    _loadRecipe();
+  }
+
+  Future<void> _ensureAuthenticated() async {
+    final token = await TokenStore().getToken();
+    if (!mounted) {
+      return;
+    }
+    if (token == null || token.isEmpty) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const AuthGate()),
+      );
+    }
+  }
+
+  Future<void> _loadRecipe() async {
+    if (widget.recipeId <= 0) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = "Recipe unavailable.";
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final detail = await _recipesApi.fetchRecipeDetail(widget.recipeId);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _detail = detail;
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _errorMessage = "Failed to load recipe.";
+        _isLoading = false;
+      });
+    }
+  }
 
   Widget _buildFAB() {
     return FloatingActionButton(
@@ -129,7 +129,10 @@ class _RecipeScreenState extends State<RecipeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    bool isFav = favoritesData.isFavorite(widget.title);
+    final title = _detail?.card.name.isNotEmpty == true
+        ? _detail!.card.name
+        : widget.title;
+    bool isFav = favoritesData.isFavorite(title);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -165,140 +168,149 @@ class _RecipeScreenState extends State<RecipeScreen> {
         },
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header with back button
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: lightGreen,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.chevron_left,
-                          color: primaryGreen,
-                          size: 28,
-                        ),
-                      ),
+        child: _isLoading
+            ? Center(child: CircularProgressIndicator())
+            : _errorMessage != null
+                ? Center(
+                    child: Text(
+                      _errorMessage!,
+                      style: TextStyle(color: Colors.grey[600]),
                     ),
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => RecipeReviewsScreen(
-                              recipeTitle: widget.title,
-                              recipeImage: widget.image,
-                            ),
-                          ),
-                        );
-                      },
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: primaryGreen,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.more_horiz,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Recipe image with favorite button
-              Padding(
-                padding: const EdgeInsets.all(24),
-                child: Stack(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
-                      child: Image.asset(
-                        widget.image,
-                        height: 250,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                    // Favorite button on image
-                    Positioned(
-                      top: 12,
-                      right: 12,
-                      child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            favoritesData.toggleFavorite({
-                              'title': widget.title,
-                              'image': widget.image,
-                            });
-                          });
-                        },
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 8,
-                                offset: Offset(0, 2),
+                  )
+                : SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Header with back button
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              GestureDetector(
+                                onTap: () => Navigator.pop(context),
+                                child: Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: lightGreen,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    Icons.chevron_left,
+                                    color: primaryGreen,
+                                    size: 28,
+                                  ),
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => RecipeReviewsScreen(
+                                        recipeTitle: title,
+                                        recipeImage: widget.image,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: primaryGreen,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    Icons.more_horiz,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                ),
                               ),
                             ],
                           ),
-                          child: Icon(
-                            isFav ? Icons.favorite : Icons.favorite_border,
-                            color: isFav ? Colors.red[400] : Colors.grey[400],
-                            size: 22,
+                        ),
+
+                        // Recipe image with favorite button
+                        Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(20),
+                                child: _buildRecipeImage(),
+                              ),
+                              // Favorite button on image
+                              Positioned(
+                                top: 12,
+                                right: 12,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      favoritesData.toggleFavorite({
+                                        'title': title,
+                                        'image': widget.image,
+                                      });
+                                    });
+                                  },
+                                  child: Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.1),
+                                          blurRadius: 8,
+                                          offset: Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Icon(
+                                      isFav
+                                          ? Icons.favorite
+                                          : Icons.favorite_border,
+                                      color: isFav
+                                          ? Colors.red[400]
+                                          : Colors.grey[400],
+                                      size: 22,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ),
+
+                        // Tab buttons
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: Row(
+                            children: [
+                              Expanded(child: _buildTabButton('Cookware', 0)),
+                              SizedBox(width: 8),
+                              Expanded(child: _buildTabButton('Ingredients', 1)),
+                              SizedBox(width: 8),
+                              Expanded(
+                                  child: _buildTabButton('Instructions', 2)),
+                            ],
+                          ),
+                        ),
+
+                        SizedBox(height: 20),
+
+                        // Tab content
+                        if (_selectedTab == 0) _buildCookwareTab(isFav, title),
+                        if (_selectedTab == 1) _buildIngredientsTab(),
+                        if (_selectedTab == 2) _buildInstructionsTab(),
+
+                        SizedBox(height: 100),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-
-              // Tab buttons
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Row(
-                  children: [
-                    Expanded(child: _buildTabButton('Cookware', 0)),
-                    SizedBox(width: 8),
-                    Expanded(child: _buildTabButton('Ingredients', 1)),
-                    SizedBox(width: 8),
-                    Expanded(child: _buildTabButton('Instructions', 2)),
-                  ],
-                ),
-              ),
-
-              SizedBox(height: 20),
-
-              // Tab content
-              if (_selectedTab == 0) _buildCookwareTab(isFav),
-              if (_selectedTab == 1) _buildIngredientsTab(),
-              if (_selectedTab == 2) _buildInstructionsTab(),
-
-              SizedBox(height: 100),
-            ],
-          ),
-        ),
+                  ),
       ),
     );
   }
@@ -331,7 +343,16 @@ class _RecipeScreenState extends State<RecipeScreen> {
     );
   }
 
-  Widget _buildCookwareTab(bool isFav) {
+  Widget _buildCookwareTab(bool isFav, String title) {
+    final detail = _detail;
+    final servings = detail?.card.servings;
+    final prep = detail?.card.prepTimeMinutes;
+    final cook = detail?.card.cookTimeMinutes;
+    final timeLabel = _buildTimeLabel(prep, cook);
+    final servingsLabel =
+        servings != null && servings > 0 ? '$servings servings' : '';
+    final nutrition = _detail?.card;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
@@ -339,9 +360,11 @@ class _RecipeScreenState extends State<RecipeScreen> {
         children: [
           // Recipe title
           Text(
-            widget.title.length > 50
-                ? widget.title
-                : 'Coconut Curry Red Lentil Dahl with Tomatoes, Cilantro & Rice.',
+            title.length > 50
+                ? title
+                : title.isNotEmpty
+                    ? title
+                    : 'Recipe',
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -354,7 +377,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
 
           // Time and servings
           Text(
-            '${_recipeData['time']} • ${_recipeData['servings']}',
+            [timeLabel, servingsLabel].where((item) => item.isNotEmpty).join(' • '),
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[600],
@@ -368,11 +391,11 @@ class _RecipeScreenState extends State<RecipeScreen> {
             children: [
               Expanded(
                   child: _buildNutritionCard(FontAwesomeIcons.wheatAwn,
-                      _recipeData['nutrition']['carbs'])),
+                      _formatNutrition(nutrition?.carbsG, 'g carbs'))),
               SizedBox(width: 16),
               Expanded(
                   child: _buildNutritionCard(FontAwesomeIcons.bacon,
-                      _recipeData['nutrition']['proteins'])),
+                      _formatNutrition(nutrition?.proteinG, 'g proteins'))),
             ],
           ),
           SizedBox(height: 16),
@@ -380,11 +403,12 @@ class _RecipeScreenState extends State<RecipeScreen> {
             children: [
               Expanded(
                   child: _buildNutritionCard(
-                      FontAwesomeIcons.fire, _recipeData['nutrition']['kcal'])),
+                      FontAwesomeIcons.fire,
+                      _formatCalories(nutrition?.caloriesKcal))),
               SizedBox(width: 16),
               Expanded(
                   child: _buildNutritionCard(FontAwesomeIcons.pizzaSlice,
-                      _recipeData['nutrition']['fats'])),
+                      _formatNutrition(nutrition?.fatG, 'g fats'))),
             ],
           ),
         ],
@@ -417,7 +441,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
   }
 
   Widget _buildIngredientsTab() {
-    final ingredients = _recipeData['ingredients'] as List;
+    final ingredients = _detail?.ingredients ?? [];
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
@@ -433,7 +457,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  ingredient['name'],
+                  ingredient.name,
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -441,7 +465,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
                   ),
                 ),
                 Text(
-                  ingredient['quantity'],
+                  _formatIngredientAmount(ingredient),
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey[600],
@@ -456,7 +480,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
   }
 
   Widget _buildInstructionsTab() {
-    final instructions = _recipeData['instructions'] as List;
+    final instructions = _detail?.steps ?? [];
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
@@ -468,7 +492,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
               children: [
                 // Step number
                 Text(
-                  '${instruction['step']}',
+                  '${instruction.stepNumber}',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -482,7 +506,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        instruction['text'],
+                        instruction.text,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -490,9 +514,9 @@ class _RecipeScreenState extends State<RecipeScreen> {
                           height: 1.4,
                         ),
                       ),
-                      if ((instruction['ingredients'] as List).isNotEmpty) ...[
+                      if (instruction.ingredients.isNotEmpty) ...[
                         SizedBox(height: 12),
-                        ...((instruction['ingredients'] as List).map((ing) {
+                        ...instruction.ingredients.map((ing) {
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 4),
                             child: Text(
@@ -503,7 +527,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
                               ),
                             ),
                           );
-                        })),
+                        }),
                       ],
                     ],
                   ),
@@ -514,5 +538,59 @@ class _RecipeScreenState extends State<RecipeScreen> {
         }).toList(),
       ),
     );
+  }
+
+  Widget _buildRecipeImage() {
+    final imageUrl = _detail?.card.imageUrl ?? '';
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      return Image.network(
+        imageUrl,
+        height: 250,
+        width: double.infinity,
+        fit: BoxFit.cover,
+      );
+    }
+    return Image.asset(
+      widget.image,
+      height: 250,
+      width: double.infinity,
+      fit: BoxFit.cover,
+    );
+  }
+
+  String _formatIngredientAmount(RecipeIngredient ingredient) {
+    if (ingredient.amountText.isNotEmpty) {
+      return ingredient.amountText;
+    }
+    if (ingredient.quantity != null && ingredient.unit.isNotEmpty) {
+      return '${ingredient.quantity} ${ingredient.unit}';
+    }
+    return ingredient.unit.isNotEmpty ? ingredient.unit : '-';
+  }
+
+  String _buildTimeLabel(int? prepMinutes, int? cookMinutes) {
+    final parts = <String>[];
+    if (prepMinutes != null && prepMinutes > 0) {
+      parts.add('$prepMinutes min prep');
+    }
+    if (cookMinutes != null && cookMinutes > 0) {
+      parts.add('$cookMinutes min cook');
+    }
+    return parts.isEmpty ? '' : parts.join(' • ');
+  }
+
+  String _formatNutrition(double? value, String suffix) {
+    if (value == null) {
+      return '-';
+    }
+    final formatted = value % 1 == 0 ? value.toStringAsFixed(0) : value.toStringAsFixed(1);
+    return '$formatted $suffix';
+  }
+
+  String _formatCalories(int? value) {
+    if (value == null) {
+      return '-';
+    }
+    return '$value Kcal';
   }
 }

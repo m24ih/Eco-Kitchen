@@ -7,6 +7,9 @@ import 'package:eco_kitchen/screens/search_recipe.dart';
 import 'package:eco_kitchen/screens/profile.dart';
 import 'package:eco_kitchen/data/favorites_data.dart';
 
+import '../auth/auth_gate.dart';
+import '../backend/token_store.dart';
+
 const Color primaryGreen = Color(0xFF9DB67B);
 const Color secondaryGreen = Color(0xFFE4EEE1);
 const Color lightGreen = Color(0xFFF5F8F3);
@@ -31,6 +34,25 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       final item = favoritesData.favorites[index];
       favoritesData.removeFavorite(item['title']);
     });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _ensureAuthenticated();
+  }
+
+  Future<void> _ensureAuthenticated() async {
+    final token = await TokenStore().getToken();
+    if (!mounted) {
+      return;
+    }
+    if (token == null || token.isEmpty) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const AuthGate()),
+      );
+    }
   }
 
   Widget _buildFAB() {
@@ -189,12 +211,19 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     required String image,
     required int index,
   }) {
+    final recipe = favoritesData.favorites[index];
+    final id = (recipe['id'] as num?)?.toInt() ?? 0;
+
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => RecipeScreen(title: title, image: image),
+            builder: (context) => RecipeScreen(
+              recipeId: id,
+              title: title,
+              image: image,
+            ),
           ),
         );
       },

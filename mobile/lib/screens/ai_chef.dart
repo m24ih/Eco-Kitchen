@@ -86,6 +86,7 @@ class _AiChefScreenState extends State<AiChefScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => RecipeScreen(
+          recipeId: recipe['id'] ?? 0,
           title: recipe['title'],
           image: recipe['image'],
         ),

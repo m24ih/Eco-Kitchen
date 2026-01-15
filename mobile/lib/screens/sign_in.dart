@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:eco_kitchen/screens/home.dart';
 import 'package:eco_kitchen/screens/register_screen.dart';
 import 'package:eco_kitchen/screens/forgot.dart';
+
+import '../auth/auth_gate.dart';
+
+import '../backend/auth_api.dart';
+import '../backend/token_store.dart';
 
 const Color primaryGreen = Color(0xFF9DB67B);
 const Color secondaryGreen = Color(0xFFE4EEE1);
@@ -15,6 +19,11 @@ class _SignInScreenState extends State<SignInScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  final AuthApi _authApi = AuthApi();
+  final TokenStore _tokenStore = TokenStore();
 
   @override
   void dispose() {
@@ -23,13 +32,41 @@ class _SignInScreenState extends State<SignInScreen> {
     super.dispose();
   }
 
-  void _login() {
-    // TODO: Implement login logic with backend
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => HomeScreen()),
-      (route) => false,
-    );
+  Future<void> _login() async {
+    if (_isLoading) {
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final tokenResponse = await _authApi.login(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+      await _tokenStore.saveToken(tokenResponse.accessToken);
+      if (!mounted) {
+        return;
+      }
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const AuthGate()),
+        (route) => false,
+      );
+    } catch (_) {
+      setState(() {
+        _errorMessage = 'Login failed. Please check your credentials.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -200,7 +237,7 @@ class _SignInScreenState extends State<SignInScreen> {
                     ),
                     child: Center(
                       child: Text(
-                        'Login',
+                        _isLoading ? 'Logging in...' : 'Login',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
@@ -210,6 +247,17 @@ class _SignInScreenState extends State<SignInScreen> {
                     ),
                   ),
                 ),
+
+                if (_errorMessage != null) ...[
+                  SizedBox(height: 12),
+                  Text(
+                    _errorMessage!,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.red,
+                    ),
+                  ),
+                ],
 
                 SizedBox(height: 24),
 

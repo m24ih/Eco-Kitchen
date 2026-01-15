@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:eco_kitchen/screens/home.dart';
 import 'package:eco_kitchen/screens/onboarding1.dart';
+import 'package:eco_kitchen/screens/sign_in.dart';
 import 'dart:async';
+
+import '../backend/onboarding_store.dart';
+import '../backend/token_store.dart';
 
 class SplashScreen extends StatefulWidget {
   @override
@@ -12,20 +16,40 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // 3 saniye sonra diğer ekrana geçiş yap
-    Timer(Duration(seconds: 3), () {
-      // Burada kullanıcı giriş yapmış mı kontrolü yapılabilir.
-      // Şimdilik OnboardingScreen'e yönlendiriyorum (veya HomeScreen'e)
-      // Kullanıcının main.dart'ta HomeScreen vardı, ama genelde Splash -> Onboarding (ilk açılışta) olur.
-      // Ancak kullanıcı oturum açmış gibi davranıyorsak HomeScreen.
-      // Kullanıcının requestinden "uygulama açılırken" dediği için,
-      // ve main.dart'ta şu an HomeScreen olduğu için HomeScreen'e yönlendiriyorum.
+    _routeFromSplash();
+  }
 
+  Future<void> _routeFromSplash() async {
+    final onboardingStore = OnboardingStore();
+    final tokenStore = TokenStore();
+    final hasSeenOnboarding = await onboardingStore.hasSeenOnboarding();
+    final token = await tokenStore.getToken();
+
+    await Future.delayed(const Duration(seconds: 3));
+    if (!mounted) {
+      return;
+    }
+
+    if (!hasSeenOnboarding) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => OnboardingScreen()),
       );
-    });
+      return;
+    }
+
+    if (token != null && token.isNotEmpty) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => HomeScreen()),
+      );
+      return;
+    }
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => SignInScreen()),
+    );
   }
 
   @override

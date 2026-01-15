@@ -5,7 +5,9 @@ import 'package:eco_kitchen/screens/search_recipe.dart';
 import 'package:eco_kitchen/screens/favorites.dart';
 import 'package:eco_kitchen/screens/ai_chef.dart';
 import 'package:eco_kitchen/screens/account.dart';
-import 'package:eco_kitchen/screens/onboarding1.dart';
+import '../auth/auth_gate.dart';
+import '../backend/auth_api.dart';
+import '../backend/token_store.dart';
 
 const Color primaryGreen = Color(0xFF9DB67B);
 const Color secondaryGreen = Color(0xFFE4EEE1);
@@ -17,6 +19,9 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   int _bottomNavIndex = 3; // Profile is selected
+  String _headerName = "";
+  bool _isHeaderLoading = true;
+  final AuthApi _authApi = AuthApi();
 
   final iconList = <IconData>[
     Icons.home_outlined,
@@ -24,6 +29,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
     Icons.favorite_border,
     Icons.person,
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHeaderProfile();
+  }
+
+  Future<void> _loadHeaderProfile() async {
+    try {
+      final data = await _authApi.me();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _headerName = (data['name'] ?? '').toString();
+        _isHeaderLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isHeaderLoading = false;
+      });
+    }
+  }
 
   Widget _buildFAB() {
     return FloatingActionButton(
@@ -54,7 +85,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _logout() {
+  Future<void> _logout() async {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -68,16 +99,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => OnboardingScreen()),
-                (route) => false,
-              );
+              _confirmLogout();
             },
             child: Text('Log Out', style: TextStyle(color: primaryGreen)),
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _confirmLogout() async {
+    await TokenStore().clearToken();
+    if (!mounted) {
+      return;
+    }
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => const AuthGate()),
+      (route) => false,
     );
   }
 
@@ -176,19 +215,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Şevval YILDIZ',
+                          _isHeaderLoading
+                              ? 'Loading...'
+                              : (_headerName.isEmpty ? 'Loading...' : _headerName),
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                             color: Colors.black87,
-                          ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          'yildiz2.kar@gmail.com',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[600],
                           ),
                         ),
                       ],
